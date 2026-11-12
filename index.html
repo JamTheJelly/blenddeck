@@ -1,0 +1,1631 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0C0D0F">
+<meta name="description" content="BlendDeck: Blender practice challenges, reference drawings, progress stats and guides.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,-apple-system,"Segoe UI",sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<script>window.BLENDDECK_STANDALONE=true</script>
+<title>BlendDeck</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: training dashboard — top bar with views; Challenge view pairs a Blender-style front viewport with the brief, KPIs above */
+:root{
+  --bg:#0C0D0F; --panel:#15171A; --panel-2:#1C1F23; --line:#2A2D33; --fg:#F3F3F1; --muted:#8D9099;
+  --accent:#FF6A13; --accent-soft:rgba(255,106,19,.14); --accent-ink:#0C0D0F; --glass:rgba(21,23,26,.74);
+  --good:#3DBE7A; --warn:#E9A23B; --bad:#F0605A;
+  --vp:#3A3A3C; --vp-grid:#444446; --vp-text:#CFCFCF;
+  --f-display:"Space Grotesk",system-ui,sans-serif;
+  --f-body:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]){
+  --bg:#F1F1EF; --panel:#FFFFFF; --panel-2:#F7F7F5; --line:#E0E0DC; --fg:#121316; --muted:#666970;
+  --accent:#E8590C; --accent-soft:rgba(232,89,12,.10); --accent-ink:#FFFFFF; --glass:rgba(255,255,255,.78);
+  --good:#1F9D5B; --warn:#B7791F; --bad:#D64545; color-scheme:light}}
+:root[data-theme="light"]{
+  --bg:#F1F1EF; --panel:#FFFFFF; --panel-2:#F7F7F5; --line:#E0E0DC; --fg:#121316; --muted:#666970;
+  --accent:#E8590C; --accent-soft:rgba(232,89,12,.10); --accent-ink:#FFFFFF; --glass:rgba(255,255,255,.78);
+  --good:#1F9D5B; --warn:#B7791F; --bad:#D64545; color-scheme:light}
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:radial-gradient(1100px 560px at 88% -8%,var(--accent-soft),transparent 62%) fixed,var(--bg);color:var(--fg);font-family:var(--f-body);font-size:14px;line-height:1.5;min-height:100vh}
+#bg{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+.top,main.wrap{position:relative;z-index:1}
+.hello{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px}
+.hello b{font-family:var(--f-display);font-size:1.5rem;font-weight:600;letter-spacing:-.01em}
+.hello span{color:var(--muted)}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes partIn{from{opacity:0}to{opacity:1}}
+@keyframes scan{0%{top:0;opacity:1}85%{opacity:1}100%{top:100%;opacity:0}}
+@keyframes spin{from{transform:rotate(0)}to{transform:rotate(180deg)}}
+.vp-scan{z-index:2;position:absolute;left:0;right:0;top:0;height:2px;background:#FF6A13;box-shadow:0 0 14px 3px rgba(255,106,19,.65);opacity:0;pointer-events:none}
+@media (prefers-reduced-motion:no-preference){
+  .vp.anim .vp-scan{animation:scan .75s ease-out}
+  .vp.anim svg>g{animation:partIn .4s ease both}
+  .anim-up{animation:fadeUp .45s cubic-bezier(.2,.8,.2,1) both}
+  .mroll.spin svg{animation:spin .45s cubic-bezier(.2,.8,.2,1)}
+  .hello{animation:fadeUp .6s ease both}
+}
+.wrap{max-width:1180px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.mono{font-family:var(--f-mono)}
+.num{font-variant-numeric:tabular-nums}
+
+/* top bar */
+.top{border-bottom:1px solid var(--line);background:var(--glass);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+.top .wrap{display:flex;align-items:center;gap:12px 20px;flex-wrap:wrap;padding-block:12px}
+.brand{display:flex;align-items:center;gap:10px;font-family:var(--f-display);font-weight:700;font-size:1.15rem;letter-spacing:-.01em}
+.brand svg{flex:0 0 auto}
+.tabs{display:flex;gap:4px;overflow-x:auto;flex:1 1 auto;min-width:0}
+.tab{background:none;border:0;border-radius:8px;padding:7px 12px;color:var(--muted);font-weight:600;white-space:nowrap}
+.tab:hover{color:var(--fg);background:var(--panel-2)}
+.tab[aria-selected="true"]{color:var(--fg);background:var(--panel-2);box-shadow:inset 0 -2px 0 var(--accent)}
+.sync{display:flex;align-items:center;gap:6px;font-size:.75rem;color:var(--muted);font-family:var(--f-mono);white-space:nowrap}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--muted)}
+.dot.on{background:var(--good)} .dot.local{background:var(--warn)}
+
+main.wrap{padding-block:20px 56px;display:flex;flex-direction:column;gap:16px}
+.view{display:flex;flex-direction:column;gap:16px}
+
+.panel,.kpi,.rc{-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+.panel{background:var(--glass);border:1px solid var(--line);border-radius:12px;padding:16px;min-width:0}
+.ph{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.label{font-family:var(--f-mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+h2,h3{font-family:var(--f-display);letter-spacing:-.01em;margin:0;text-wrap:balance}
+
+/* KPIs */
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+@media (max-width:720px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kpi{background:var(--glass);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.kpi .v{font-family:var(--f-display);font-size:1.7rem;font-weight:600;line-height:1.15;font-variant-numeric:tabular-nums}
+.kpi .s{font-size:.75rem;color:var(--muted);font-family:var(--f-mono)}
+.up{color:var(--good)} .down{color:var(--bad)}
+
+/* challenge grid */
+.grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:880px){.grid2{grid-template-columns:minmax(0,1fr)}}
+
+.vp{position:relative;aspect-ratio:1;max-width:100%;background:var(--vp);border-radius:8px;overflow:hidden}
+.vp svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+.vp-lbl{position:absolute;left:10px;top:8px;font-family:var(--f-mono);font-size:.7rem;color:var(--vp-text);line-height:1.45;pointer-events:none}
+.vp-mode{position:absolute;right:8px;top:8px;display:flex;background:rgba(0,0,0,.35);border-radius:7px;padding:2px}
+.vp-mode button{border:0;background:none;color:#D8D8D8;font-size:.72rem;font-weight:600;padding:4px 9px;border-radius:5px}
+.vp-mode button[aria-pressed="true"]{background:#FF6A13;color:#111}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:10px;font-size:.78rem;color:var(--muted);min-height:20px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px;border:1px solid rgba(127,127,127,.5)}
+
+.tags{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.tag{font-family:var(--f-mono);font-size:.7rem;padding:3px 8px;border-radius:6px;border:1px solid var(--line);color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.tag.accent{border-color:transparent;background:var(--accent-soft);color:var(--accent)}
+.pill{font-family:var(--f-mono);font-size:.7rem;padding:3px 8px;border-radius:6px;text-transform:uppercase;letter-spacing:.05em;font-weight:500}
+.pill.Easy{background:color-mix(in srgb,var(--good) 18%,transparent);color:var(--good)}
+.pill.Medium{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}
+.pill.Hard{background:color-mix(in srgb,var(--bad) 18%,transparent);color:var(--bad)}
+#p-title{font-size:1.6rem;line-height:1.2;margin:12px 0 16px}
+.specs{display:grid;grid-template-columns:auto minmax(0,1fr);gap:0;margin:0;border-top:1px solid var(--line)}
+.specs dt,.specs dd{padding:9px 0;border-bottom:1px solid var(--line);margin:0}
+.specs dt{padding-right:16px;color:var(--muted);font-size:.78rem;font-family:var(--f-mono);text-transform:uppercase;letter-spacing:.05em;padding-top:11px}
+.specs dd{min-width:0}
+.specs dd b{font-weight:600}
+.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.btn{border:1px solid var(--line);background:var(--panel-2);border-radius:8px;padding:9px 14px;font-weight:600;display:inline-flex;align-items:center;gap:8px}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary{box-shadow:0 6px 18px -8px var(--accent);transition:box-shadow .2s,filter .2s}
+.btn.primary:hover{filter:brightness(1.07);box-shadow:0 0 0 4px var(--accent-soft),0 8px 22px -8px var(--accent)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.kbd{font-family:var(--f-mono);font-size:.68rem;opacity:.75;border:1px solid currentColor;border-radius:4px;padding:0 4px}
+
+.filters{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center}
+.field{display:flex;align-items:center;gap:8px}
+select{background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:7px 10px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;padding:2px;background:var(--panel-2)}
+.seg button{border:0;background:none;padding:5px 10px;border-radius:6px;font-weight:600;color:var(--muted);font-size:.85rem}
+.seg button[aria-pressed="true"]{background:var(--fg);color:var(--bg)}
+.switch{display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:500}
+.switch input{accent-color:var(--accent);width:16px;height:16px}
+
+.strip{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px}
+.mini{flex:0 0 auto;width:112px;border:1px solid var(--line);background:var(--panel-2);border-radius:10px;padding:6px;display:flex;flex-direction:column;gap:4px;text-align:left}
+.mini .art{aspect-ratio:1;background:var(--vp);border-radius:6px;overflow:hidden}
+.mini .art svg{width:100%;height:100%;display:block}
+.mini span{font-size:.72rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--muted)}
+.mini[aria-current="true"]{border-color:var(--accent)}
+.empty{color:var(--muted);font-size:.88rem;padding:8px 0}
+
+/* progress */
+.skills{display:flex;flex-direction:column;gap:12px}
+.sk{display:grid;grid-template-columns:150px minmax(0,1fr) 92px;gap:12px;align-items:center}
+@media (max-width:560px){.sk{grid-template-columns:minmax(0,1fr) 84px}.sk .track{grid-column:1/-1;order:3}}
+.sk .n{font-weight:600}
+.track{position:relative;height:10px;border-radius:5px;background:var(--panel-2);border:1px solid var(--line)}
+.fill{position:absolute;left:0;top:0;bottom:0;border-radius:5px;background:var(--accent)}
+.base{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--fg);opacity:.7}
+.sk .val{text-align:right;font-family:var(--f-mono);font-size:.8rem}
+.note{font-size:.78rem;color:var(--muted);margin-top:12px}
+.chart{width:100%;height:auto;display:block}
+.chart text{font-family:var(--f-mono);font-size:9px;fill:var(--muted)}
+.bars{display:flex;flex-direction:column;gap:8px}
+.bar{display:grid;grid-template-columns:100px minmax(0,1fr) 28px;gap:10px;align-items:center;font-size:.85rem}
+.bar .t{height:8px;border-radius:4px;background:var(--panel-2);overflow:hidden}
+.bar .t div{height:100%;background:var(--accent)}
+.bar .c{text-align:right;font-family:var(--f-mono);font-size:.78rem;color:var(--muted)}
+
+/* renders */
+.gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
+.rc{background:var(--glass);border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;min-width:0}
+.rc .img{aspect-ratio:4/3;background:var(--panel-2);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:.8rem}
+.rc .img img{width:100%;height:100%;object-fit:cover;display:block}
+.rc .body{padding:12px;display:flex;flex-direction:column;gap:6px}
+.rc h4{margin:0;font-size:.92rem;line-height:1.35;font-weight:600}
+.meta{font-family:var(--f-mono);font-size:.72rem;color:var(--muted)}
+.review{background:var(--panel-2);border-radius:8px;padding:8px 10px;font-size:.82rem;display:flex;flex-direction:column;gap:4px}
+.review ul{margin:0;padding-left:18px}
+.score{font-family:var(--f-mono);font-weight:500;color:var(--accent)}
+.linkbtn{background:none;border:0;padding:0;color:var(--muted);font-size:.78rem;text-decoration:underline}
+.linkbtn.danger{color:var(--bad)}
+
+/* assessment */
+.drop{border:1.5px dashed var(--line);border-radius:10px;padding:18px;text-align:center;display:flex;flex-direction:column;gap:8px;align-items:center;background:var(--panel-2)}
+.drop.over{border-color:var(--accent)}
+.thumbs{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.thumbs img{width:64px;height:64px;object-fit:cover;border-radius:6px;border:1px solid var(--line)}
+.radar text{font-family:var(--f-mono);font-size:4.2px;fill:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line);border-radius:999px;padding:3px 10px;font-size:.8rem}
+.chip.hl{border-color:var(--accent);color:var(--accent)}
+.status{font-size:.85rem;color:var(--muted);min-height:1.3em}
+.status.err{color:var(--bad)}
+table{border-collapse:collapse;width:100%;font-size:.85rem}
+th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line)}
+th{font-family:var(--f-mono);font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;font-weight:400}
+.tscroll{overflow-x:auto}
+
+/* modal */
+.backdrop{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:20;
+  padding:calc(16px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) calc(16px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.modal{background:var(--panel);border:1px solid var(--line);border-radius:14px;width:100%;max-width:520px;max-height:100%;overflow:auto;padding:20px;display:flex;flex-direction:column;gap:14px}
+.modal label.f{display:flex;flex-direction:column;gap:6px;font-weight:600;font-size:.85rem}
+.modal input[type=number],.modal textarea{background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-weight:400}
+.modal textarea{min-height:70px;resize:vertical}
+.rate{display:flex;gap:6px}
+.rate button{width:40px;height:36px;border-radius:8px;border:1px solid var(--line);background:var(--panel-2);font-weight:700}
+.rate button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.preview{max-height:180px;border-radius:8px;object-fit:contain;background:var(--panel-2);width:100%}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:9px 16px;border-radius:8px;font-weight:600;z-index:30;max-width:calc(100% - 32px)}
+@media (prefers-reduced-motion:no-preference){.fill{transition:width .5s ease}}
+
+/* roll + completion animations */
+html.rolling #p-title{color:var(--muted)}
+html.rolling .vp{box-shadow:inset 0 0 0 2px var(--accent)}
+html.rolling .specs dd{opacity:.35;transition:opacity .15s}
+.celebrate{position:fixed;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;background:rgba(8,9,11,.55);
+  padding:calc(16px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) calc(16px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+#confetti{position:fixed;inset:0;width:100%;height:100%;pointer-events:none}
+.cel-card{position:relative;background:var(--panel);border:1px solid color-mix(in srgb,var(--accent) 50%,var(--line));border-radius:16px;padding:24px;max-width:420px;width:100%;
+  display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;box-shadow:0 20px 60px -20px rgba(0,0,0,.6),0 0 0 6px var(--accent-soft)}
+.cel-card h3{font-size:1.1rem;line-height:1.35}
+.cel-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;width:100%;margin:6px 0 8px}
+.cel-stats div{background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:8px;display:flex;flex-direction:column}
+.cel-stats b{font-family:var(--f-display);font-size:1.35rem;color:var(--accent)}
+.cel-stats span{font-size:.75rem;color:var(--muted)}
+.cel-check circle,.cel-check path{stroke-dasharray:100;stroke-dashoffset:0}
+@keyframes draw{from{stroke-dashoffset:100}to{stroke-dashoffset:0}}
+@keyframes popIn{0%{opacity:0;transform:scale(.88) translateY(10px)}60%{opacity:1;transform:scale(1.02)}100%{transform:none}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion:no-preference){
+  .celebrate.show{animation:fadeIn .25s ease both}
+  .celebrate.show .cel-card{animation:popIn .5s cubic-bezier(.2,.9,.25,1.2) both .05s}
+  .celebrate.show .cel-check circle{animation:draw .55s ease-out both .2s}
+  .celebrate.show .cel-check path{animation:draw .35s ease-out both .65s}
+  .celebrate.show .cel-stats div{animation:fadeUp .4s ease both}
+  .celebrate.show .cel-stats div:nth-child(1){animation-delay:.75s}.celebrate.show .cel-stats div:nth-child(2){animation-delay:.85s}
+  .celebrate.show .cel-stats div:nth-child(3){animation-delay:.95s}.celebrate.show .cel-stats div:nth-child(4){animation-delay:1.05s}
+}
+
+/* weekly + related + guides */
+html[data-view="guides"] .kpis,html[data-view="guides"] .hello{display:none}
+.weekly{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;border-color:color-mix(in srgb,var(--accent) 45%,var(--line));
+  background:linear-gradient(100deg,var(--accent-soft),transparent 60%),var(--glass)}
+.weekly .wk-body{flex:1 1 320px;min-width:0;display:flex;flex-direction:column;gap:4px}
+.weekly .wk-title{font-family:var(--f-display);font-size:1.15rem;font-weight:600;line-height:1.3}
+.weekly .done{color:var(--good);font-weight:600}
+.related{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:14px}
+.related button{border:1px solid var(--line);background:var(--panel-2);border-radius:999px;padding:4px 11px;font-size:.8rem;font-weight:600}
+.related button:hover{border-color:var(--accent);color:var(--accent)}
+.gtools{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;margin-bottom:12px}
+.gtools input[type=search]{flex:1 1 260px;min-width:0;background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:9px 12px}
+.gcats button{background:var(--panel-2);border:1px solid var(--line);border-radius:999px;padding:5px 12px;font-size:.82rem;font-weight:600;color:var(--muted)}
+.gcats button[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.glist{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px;align-items:start}
+@media (max-width:420px){.glist{grid-template-columns:minmax(0,1fr)}}
+.gcard{background:var(--glass);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border:1px solid var(--line);border-radius:12px;min-width:0}
+.gcard[open]{border-color:color-mix(in srgb,var(--accent) 40%,var(--line))}
+.gcard.flash{box-shadow:0 0 0 3px var(--accent-soft)}
+.gcard summary{list-style:none;cursor:pointer;padding:14px 16px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px}
+.gcard summary::-webkit-details-marker{display:none}
+.gcard h4{margin:0;font-family:var(--f-display);font-size:1rem;font-weight:600}
+.gcard .gsum{grid-column:1/2;color:var(--muted);font-size:.85rem}
+.gcard .gcat{font-family:var(--f-mono);font-size:.66rem;text-transform:uppercase;letter-spacing:.06em;color:var(--accent)}
+.pin{grid-row:1/3;grid-column:2;align-self:start;background:none;border:1px solid var(--line);border-radius:7px;width:30px;height:30px;color:var(--muted);font-size:.95rem;line-height:1}
+.pin[aria-pressed="true"]{color:var(--accent);border-color:var(--accent)}
+.gbody{padding:0 16px 16px;display:flex;flex-direction:column;gap:12px}
+.nodes{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.node{font-family:var(--f-mono);font-size:.74rem;background:var(--panel-2);border:1px solid var(--line);border-left:4px solid var(--k);border-radius:6px;padding:3px 8px}
+.arrow{color:var(--muted);font-size:.8rem}
+.gbody ol{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:5px}
+.gbody ol li::marker{color:var(--accent);font-family:var(--f-mono);font-size:.8rem}
+.gtip{background:var(--panel-2);border-radius:8px;padding:8px 10px;font-size:.84rem}
+.gtip b{color:var(--accent)}
+kbd{font-family:var(--f-mono);font-size:.75rem;border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:0 5px;background:var(--panel-2)}
+.gtags{display:flex;flex-wrap:wrap;gap:4px}
+.ref{display:grid;grid-template-columns:minmax(110px,auto) minmax(0,1fr);gap:0;margin:0;font-size:.85rem}
+.ref dt,.ref dd{padding:6px 0;border-bottom:1px solid var(--line);margin:0}
+.ref dt{font-weight:600;padding-right:12px}
+.ref dd{color:var(--muted)}
+.ref mark{background:var(--accent-soft);color:inherit;border-radius:3px}
+@media (max-width:420px){.ref{grid-template-columns:minmax(0,1fr)}.ref dt{border-bottom:0;padding-bottom:0}}
+
+/* mobile app layout: roll + stats only, bottom bar */
+.mbar,.m-only{display:none}
+html.m .m-only{display:block}
+html.m .top .tabs{display:none}
+html.m .top .wrap{padding-block:10px;justify-content:space-between}
+html.m main.wrap{padding-block:12px calc(100px + env(safe-area-inset-bottom,0px));gap:12px}
+html.m[data-view="challenge"] .kpis{display:none}
+html.m #log,html.m #roll,html.m .kbd,html.m .related{display:none}
+html.m .vp{width:min(100%,40vh);margin:0 auto}
+html.m #v-challenge .grid2>.panel:nth-child(2){order:-1}
+html.m #vp-coll{display:none}
+html.m #p-title{font-size:1.3rem;margin:10px 0 12px}
+html.m .panel{padding:14px}
+html.m .filters{flex-direction:column;align-items:stretch;gap:12px}
+html.m .field{justify-content:space-between}
+html.m .actions .btn{flex:1 1 auto;justify-content:center}
+html.m .mbar{display:flex}
+.mbar{position:fixed;left:0;right:0;bottom:0;z-index:15;background:var(--glass);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-top:1px solid var(--line);align-items:center;justify-content:space-around;
+  padding:6px max(16px,env(safe-area-inset-right,0px)) calc(8px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.mtab{background:none;border:0;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:.72rem;font-weight:600;color:var(--muted);padding:4px 18px}
+.mtab[aria-selected="true"]{color:var(--accent)}
+.mroll{width:62px;height:62px;border-radius:18px;background:var(--accent);border:0;color:var(--accent-ink);display:flex;align-items:center;justify-content:center;margin-top:-28px;box-shadow:0 8px 18px -6px rgba(232,89,12,.6)}
+.mroll:active{transform:scale(.96)}
+</style>
+
+</head>
+<body>
+<canvas id="bg" aria-hidden="true"></canvas>
+<header class="top">
+  <div class="wrap">
+    <div class="brand">
+      <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><rect width="26" height="26" rx="6" fill="#FF6A13"/><path d="M13 5l7 4v8l-7 4-7-4V9z" fill="none" stroke="#111" stroke-width="1.8" stroke-linejoin="round"/><path d="M6 9l7 4 7-4M13 13v8" fill="none" stroke="#111" stroke-width="1.8" stroke-linejoin="round"/></svg>
+      BlendDeck
+    </div>
+    <nav class="tabs" role="tablist" aria-label="Views">
+      <button class="tab" role="tab" id="tab-challenge" data-view="challenge">Challenge</button>
+      <button class="tab" role="tab" id="tab-progress" data-view="progress">Progress</button>
+      <button class="tab" role="tab" id="tab-renders" data-view="renders">Renders</button>
+      <button class="tab" role="tab" id="tab-assessment" data-view="assessment">Assessment</button>
+      <button class="tab" role="tab" id="tab-guides" data-view="guides">Guides</button>
+    </nav>
+    <div class="sync" id="sync"><span class="dot" id="sync-dot"></span><span id="sync-txt">Connecting…</span></div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="hello" id="hello"><b id="hello-g">Welcome back.</b><span id="hello-s"></span></div>
+  <section class="kpis" aria-label="Summary">
+    <div class="kpi"><span class="label">Completed</span><span class="v" id="k-done">0</span><span class="s" id="k-done-s">no challenges yet</span></div>
+    <div class="kpi"><span class="label">Streak</span><span class="v" id="k-streak">0</span><span class="s" id="k-streak-s">days in a row</span></div>
+    <div class="kpi"><span class="label">Time modeled</span><span class="v" id="k-hours">0h</span><span class="s" id="k-hours-s">logged</span></div>
+    <div class="kpi"><span class="label">Avg self‑rating</span><span class="v" id="k-rating">–</span><span class="s" id="k-rating-s">last 5 challenges</span></div>
+  </section>
+
+  <!-- CHALLENGE -->
+  <section class="view" id="v-challenge">
+    <div class="panel weekly" id="weekly-card" hidden></div>
+    <div class="grid2">
+      <div class="panel">
+        <div class="ph"><span class="label">Reference · front view</span><span class="label" id="vp-size"></span></div>
+        <div class="vp" id="vp">
+          <div class="vp-scan" aria-hidden="true"></div>
+          <svg id="vp-svg" viewBox="0 0 100 100" role="img" aria-label="Reference drawing"></svg>
+          <div class="vp-lbl"><div>Front Orthographic</div><div id="vp-coll">(1) Collection</div></div>
+          <div class="vp-mode" role="group" aria-label="Reference mode">
+            <button id="mode-shaded" aria-pressed="true">Shaded</button>
+            <button id="mode-block" aria-pressed="false">Blockout</button>
+          </div>
+        </div>
+        <div class="legend" id="legend"></div>
+      </div>
+
+      <div class="panel">
+        <div class="tags"><span class="tag accent" id="p-format">Model</span><span class="pill Easy" id="p-diff">Easy</span><span class="tag" id="p-cat">Props</span></div>
+        <h2 id="p-title">…</h2>
+        <dl class="specs">
+          <dt>Theme</dt><dd id="s-theme"></dd>
+          <dt>Focus</dt><dd id="s-focus"></dd>
+          <dt>Rule</dt><dd id="s-rule"></dd>
+          <dt>Time box</dt><dd id="s-time"></dd>
+          <dt>Start</dt><dd id="s-start"></dd>
+        </dl>
+        <div class="related" id="related"></div>
+        <div class="actions">
+          <button class="btn primary" id="roll">Roll new challenge <span class="kbd">R</span></button>
+          <button class="btn" id="log">Log completion</button>
+          <button class="btn" id="copy">Copy</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="filters">
+        <div class="field"><span class="label">Category</span>
+          <select id="f-cat" aria-label="Category"></select></div>
+        <div class="field"><span class="label">Difficulty</span>
+          <div class="seg" id="f-diff" role="group" aria-label="Difficulty"></div></div>
+        <div class="field"><span class="label">Prompt style</span>
+          <div class="seg" id="f-mode" role="group" aria-label="Prompt style"></div></div>
+        <label class="switch" for="f-weak"><input type="checkbox" id="f-weak"> Train my weakest skill</label>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="ph"><span class="label">Recent rolls</span></div>
+      <div class="strip" id="recent"></div>
+    </div>
+  </section>
+
+  <!-- PROGRESS -->
+  <section class="view" id="v-progress" hidden>
+    <p class="note m-only" style="margin:0">Log finished challenges, renders and assessments on your PC. Your stats sync here.</p>
+    <div class="panel">
+      <div class="ph"><h3>Skill levels</h3><span class="label" id="sk-src"></span></div>
+      <div class="skills" id="skills"></div>
+      <p class="note">Each bar starts at your latest assessment (the white tick) and grows with every logged challenge in that skill. Harder challenges and higher self‑ratings count for more. Run a new assessment to re‑calibrate.</p>
+    </div>
+    <div class="grid2">
+      <div class="panel">
+        <div class="ph"><h3>Weekly activity</h3><span class="label">challenges / week</span></div>
+        <div id="weekly"></div>
+      </div>
+      <div class="panel">
+        <div class="ph"><h3>Self‑rating trend</h3><span class="label">last 12 challenges</span></div>
+        <div id="trend"></div>
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="panel"><div class="ph"><h3>Categories covered</h3></div><div class="bars" id="cats"></div></div>
+      <div class="panel"><div class="ph"><h3>By difficulty</h3></div><div class="bars" id="diffs"></div></div>
+    </div>
+    <div class="panel">
+      <div class="ph"><h3>Backup</h3><span class="label" id="bk-where"></span></div>
+      <p style="margin:0 0 12px;color:var(--muted)">Move your challenge log, renders and assessments between the claude.ai version, the installed app and your devices. Importing adds entries you don't already have; nothing is overwritten.</p>
+      <div class="actions" style="margin-top:0">
+        <button class="btn" id="bk-export">Export backup</button>
+        <label class="btn" for="bk-file">Import backup</label>
+        <input type="file" id="bk-file" accept=".json,application/json" hidden>
+      </div>
+      <div class="status" id="bk-status" role="status"></div>
+    </div>
+  </section>
+
+  <!-- RENDERS -->
+  <section class="view" id="v-renders" hidden>
+    <div class="ph"><h3>Finished renders</h3><span class="label" id="r-count"></span></div>
+    <div class="gallery" id="gallery"></div>
+  </section>
+
+  <!-- GUIDES -->
+  <section class="view" id="v-guides" hidden>
+    <div class="panel">
+      <div class="gtools">
+        <input type="search" id="g-q" placeholder="Search guides: toon, glass, HDRI, bevel…" aria-label="Search guides">
+        <label class="switch" for="g-pin"><input type="checkbox" id="g-pin"> Pinned only</label>
+      </div>
+      <div class="chips gcats" id="g-cats" role="group" aria-label="Guide category"></div>
+      <p class="meta" style="margin:10px 0 0">Written for Blender 4.2 and later (current: 5.2 LTS). Node colors match Blender's node headers.</p>
+    </div>
+    <div class="glist" id="g-list"></div>
+  </section>
+
+  <!-- ASSESSMENT -->
+  <section class="view" id="v-assessment" hidden>
+    <div class="grid2">
+      <div class="panel">
+        <div class="ph"><h3>Run an assessment</h3></div>
+        <p style="margin:0 0 12px;color:var(--muted)">Upload a few of your recent renders and Claude scores six Blender skills from what it can see. Use 3–6 images that show different work for the best read.</p>
+        <div class="drop" id="drop">
+          <span>Drop renders here or</span>
+          <label class="btn" for="a-files">Choose images</label>
+          <input type="file" id="a-files" accept="image/*" multiple hidden>
+          <span class="meta" id="a-limit"></span>
+        </div>
+        <div class="thumbs" id="a-thumbs"></div>
+        <div class="actions">
+          <button class="btn primary" id="a-run" disabled>Assess these renders</button>
+          <button class="btn" id="a-logged">Assess my logged renders</button>
+        </div>
+        <div class="status" id="a-status" role="status"></div>
+      </div>
+      <div class="panel" id="a-result"></div>
+    </div>
+    <div class="panel">
+      <div class="ph"><h3>Assessment history</h3></div>
+      <div class="tscroll" id="a-history"></div>
+    </div>
+  </section>
+</main>
+
+<div class="backdrop" id="modal" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="m-title">
+    <div>
+      <span class="label">Log completion</span>
+      <h3 id="m-title" style="margin-top:4px;font-size:1.15rem"></h3>
+    </div>
+    <label class="f" for="m-file">Final render
+      <input type="file" id="m-file" accept="image/*">
+    </label>
+    <img id="m-prev" class="preview" alt="Render preview" hidden>
+    <label class="f" for="m-min">Minutes spent
+      <input type="number" id="m-min" min="1" max="1440" step="5">
+    </label>
+    <div class="f" style="display:flex;flex-direction:column;gap:6px;font-weight:600;font-size:.85rem">How did it go?
+      <div class="rate" id="m-rate" role="group" aria-label="Self-rating 1 to 5"></div>
+      <span class="meta">1 = struggled · 5 = nailed it</span>
+    </div>
+    <label class="f" for="m-notes">Notes (what you learned, what to try next)
+      <textarea id="m-notes"></textarea>
+    </label>
+    <label class="switch" for="m-ai"><input type="checkbox" id="m-ai" checked> Get Claude's feedback on the render</label>
+    <div class="actions" style="margin-top:0">
+      <button class="btn primary" id="m-save">Save</button>
+      <button class="btn" id="m-cancel">Cancel</button>
+    </div>
+    <div class="status" id="m-status"></div>
+  </div>
+</div>
+<nav class="mbar" aria-label="App">
+  <button class="mtab" data-view="challenge" id="mt-challenge"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9"/></svg>Challenge</button>
+  <button class="mroll" id="m-roll" aria-label="Roll new challenge"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3.5"/><circle cx="9" cy="9" r="1.3" fill="currentColor"/><circle cx="15" cy="15" r="1.3" fill="currentColor"/><circle cx="15" cy="9" r="1.3" fill="currentColor"/><circle cx="9" cy="15" r="1.3" fill="currentColor"/></svg></button>
+  <button class="mtab" data-view="progress" id="mt-progress"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M5 20V12M12 20V5M19 20v-5"/></svg>Stats</button>
+</nav>
+<div class="celebrate" id="celebrate" hidden role="dialog" aria-modal="true" aria-labelledby="cel-h">
+  <canvas id="confetti" aria-hidden="true"></canvas>
+  <div class="cel-card">
+    <svg class="cel-check" viewBox="0 0 64 64" width="72" height="72" aria-hidden="true"><circle cx="32" cy="32" r="28" fill="none" stroke="var(--accent)" stroke-width="3.5" pathLength="100"/><path d="M20 33 l8 8 l16 -18" fill="none" stroke="var(--accent)" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" pathLength="100"/></svg>
+    <span class="label" id="cel-h">Challenge complete</span>
+    <h3 id="cel-title"></h3>
+    <div class="cel-stats" id="cel-stats"></div>
+    <button class="btn primary" id="cel-ok">Nice, keep going</button>
+  </div>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+/* ================= DATA ================= */
+const PI=Math.PI;
+const SKILLS={form:"Form & proportion",topo:"Topology",mods:"Modifiers",uv:"UV & texturing",mat:"Materials",light:"Lighting & render"};
+const SKEYS=Object.keys(SKILLS);
+
+const THEMES={
+ classic:{n:"Classic",a:"",p:{main:"#D2693C",accent:"#E9B44C",metal:"#A7ADB5",wood:"#8B6142",light:"#EFEDE8",glow:"#FFD27A",dark:"#2E2F33"}},
+ cozy:{n:"Cozy cottage",a:"cozy",p:{main:"#D9765B",accent:"#E9C46A",metal:"#9AA0A6",wood:"#9C6B4A",light:"#F2EBDD",glow:"#FFD166",dark:"#3A302C"}},
+ steam:{n:"Steampunk",a:"steampunk",p:{main:"#B87333",accent:"#D4A017",metal:"#8C8577",wood:"#6B4226",light:"#D8CFBF",glow:"#FFB347",dark:"#2B2118"}},
+ scifi:{n:"Sci‑fi",a:"sci‑fi",p:{main:"#E8ECF2",accent:"#3FA9F5",metal:"#8A94A6",wood:"#4A5468",light:"#F7F9FC",glow:"#5CF0FF",dark:"#1E2433"}},
+ cyber:{n:"Cyberpunk",a:"cyberpunk",p:{main:"#3D405B",accent:"#FF2E88",metal:"#6C7086",wood:"#2B2D42",light:"#C9C9D6",glow:"#00F0FF",dark:"#121220"}},
+ candy:{n:"Candy land",a:"candy‑coated",p:{main:"#FF8FB1",accent:"#8FD3C1",metal:"#C7B8E8",wood:"#F6C28B",light:"#FFF1F7",glow:"#FFE66D",dark:"#5A2E4A"}},
+ haunt:{n:"Haunted",a:"haunted",p:{main:"#6E5A8C",accent:"#9BC53D",metal:"#7D7A85",wood:"#4F3F33",light:"#D6D0E6",glow:"#C3F73A",dark:"#1F1A28"}},
+ ocean:{n:"Underwater",a:"underwater",p:{main:"#2A9D8F",accent:"#FF9F1C",metal:"#8FA9B3",wood:"#7A5C4B",light:"#CDEFEA",glow:"#FFE066",dark:"#12324A"}},
+ medi:{n:"Medieval",a:"medieval",p:{main:"#9E2A2B",accent:"#D4A23C",metal:"#9A9A9A",wood:"#6F4E37",light:"#E2DCCB",glow:"#F9C74F",dark:"#2D2424"}},
+ desert:{n:"Desert nomad",a:"desert nomad",p:{main:"#D08C60",accent:"#2A9D8F",metal:"#B3A58E",wood:"#8B5E3C",light:"#F1E3C8",glow:"#F4C430",dark:"#3E2C23"}},
+ arctic:{n:"Arctic expedition",a:"arctic expedition",p:{main:"#6FA8DC",accent:"#E4572E",metal:"#A9B4C2",wood:"#7B6D5E",light:"#F4F8FB",glow:"#BDE6FF",dark:"#24323F"}},
+ solar:{n:"Solarpunk",a:"solarpunk",p:{main:"#6BAA75",accent:"#F2B134",metal:"#B8C4BB",wood:"#A57548",light:"#F3F1E4",glow:"#FFE38A",dark:"#24372B"}},
+ retro:{n:"Retro ’80s",a:"retro ’80s",p:{main:"#FF6F59",accent:"#43BCCD",metal:"#B5B5C9",wood:"#8E6C88",light:"#F7EFE5",glow:"#F9DC5C",dark:"#2E2A4A"}},
+ pirate:{n:"Pirate",a:"pirate",p:{main:"#7A1F2B",accent:"#C9A227",metal:"#8E8E86",wood:"#6A4A2F",light:"#E8DCC2",glow:"#F2C14E",dark:"#231B16"}},
+ apoc:{n:"Post‑apocalyptic",a:"post‑apocalyptic",p:{main:"#8A7F5A",accent:"#C2571A",metal:"#7A7C7D",wood:"#5E4B3A",light:"#CFC6B0",glow:"#E8A33D",dark:"#252320"}},
+ deco:{n:"Art deco",a:"art deco",p:{main:"#1F3B4D",accent:"#D4AF37",metal:"#B9B9B9",wood:"#3B2F2F",light:"#EDE6D6",glow:"#F6D365",dark:"#121417"}},
+ toy:{n:"Toy box",a:"toy‑box plastic",p:{main:"#E63946",accent:"#F1C40F",metal:"#4D8FD6",wood:"#F4A261",light:"#F8F9FA",glow:"#FFE066",dark:"#2B2D42"}},
+ alien:{n:"Alien world",a:"alien",p:{main:"#7FD8BE",accent:"#B07BE5",metal:"#8E9AAF",wood:"#5B4B6E",light:"#E6FFF7",glow:"#CCFF66",dark:"#1D2333"}}
+};
+/* which kinds of subject each theme suits (subjects carry the same vibe tags) */
+const THEME_VIBES={classic:"*",cozy:"everyday,rustic,nature,food",steam:"tech,industrial,adventure,everyday",scifi:"tech,adventure,everyday,industrial",
+ cyber:"tech,everyday,food",candy:"food,everyday,fantasy,nature",haunt:"fantasy,rustic,everyday",ocean:"nature,adventure,fantasy",
+ medi:"fantasy,rustic,industrial",desert:"adventure,rustic,nature",arctic:"adventure,tech,nature",solar:"nature,tech,rustic,everyday",
+ retro:"tech,everyday,food",pirate:"adventure,fantasy,rustic",apoc:"industrial,tech,adventure,everyday",deco:"everyday,tech,food",
+ toy:"everyday,tech,adventure,food,nature,fantasy",alien:"nature,tech,fantasy"};
+const STYLES=["chunky low‑poly","stylized","hard‑surface","semi‑realistic","toon‑shaded","clay‑render"];
+const TWISTS=[" that's slightly broken"," with a tiny face"," half overgrown with moss"," that glows from inside"," sized for a giant"," after a hundred years of use"," mid‑transformation into something else"," built from mismatched salvaged parts"," frozen in a block of ice"," decorated for a festival"];
+const MODES={simple:"Simple",themed:"Themed",wild:"Wild"};
+const FORMATS=[
+ {k:"model",n:"Model",w:5,t:l=>`Model ${art(l)} ${l}`},
+ {k:"speed",n:"Speed model",w:2,t:l=>`Speed‑model ${art(l)} ${l} in one sitting`,time:20},
+ {k:"diorama",n:"Mini diorama",w:2,t:l=>`Build a mini diorama around ${art(l)} ${l}, on a round base with two small props`},
+ {k:"variant",n:"Variant pair",w:1,t:l=>`Model ${art(l)} ${l}, then a worn, damaged variant of it`},
+ {k:"kitbash",n:"Kitbash",w:1,t:l=>`Kitbash ${art(l)} ${l} from at most eight primitive shapes`}
+];
+const TIME={Easy:30,Medium:60,Hard:120};
+const FOCUS={
+ Easy:[["Clean silhouette from simple primitives","form"],["Bevel modifier on the hard edges","mods"],["Three flat materials, no textures","mat"],["Smooth shading without artifacts","topo"],["Three‑point lighting setup","light"],["Smart UV Project and a checker texture","uv"]],
+ Medium:[["Quad topology with clean edge flow","topo"],["Non‑destructive stack: Mirror, Bevel, Array, Solidify","mods"],["Procedural material in the Shader Editor","mat"],["UV unwrap with marked seams","uv"],["HDRI lighting and a camera with depth of field","light"],["Accurate proportions from the reference","form"]],
+ Hard:[["Subdivision‑ready all‑quad mesh","topo"],["UV unwrap and texture‑paint one detail","uv"],["Sculpt surface wear, then retopologize","topo"],["Layered procedural material with edge wear","mat"],["Light and render a turntable animation","light"],["Geometry Nodes for one repeated detail","mods"],["Secondary and tertiary forms on a strong silhouette","form"]]
+};
+const RULES={
+ Easy:["Stay under 500 triangles","Primitives and Edit Mode only, no sculpting","Use at least one Mirror modifier","Two materials maximum","Render from a single front camera"],
+ Medium:["Use at least three different modifiers","One mesh object, two materials","Add a small stand or base for it","Keep it under 3,000 triangles","Name every object and material properly"],
+ Hard:["Add two accessory props that tell its story","No triangles or n‑gons in the final mesh","Zero UV stretching in the UV checker","Match the real‑world size in meters","Render it in two lighting moods"]
+};
+const PRIM={cube:["Cube","#FF7A1A"],cyl:["Cylinder","#F4F4F2"],sphere:["UV sphere","#FFC199"],cone:["Cone","#C2410C"],torus:["Torus","#8A8F98"],extrude:["Plane / extrude","#1A1A1C"],curve:["Curve + bevel","#E6E6E6"]};
+
+/* drawing helpers: 100×100 front view, ground at y≈92 */
+function o_(p,o,def){return typeof p==="object"?[def,p]:[p||def,o||{}]}
+const R=(x,y,w,h,c,p,o)=>{[p,o]=o_(p,o,"cube");return{t:"rect",x,y,w,h,c,p,...o}};
+const C=(x,y,r,c,p,o)=>{[p,o]=o_(p,o,"sphere");return{t:"ell",x,y,rx:r,ry:r,c,p,...o}};
+const E=(x,y,rx,ry,c,p,o)=>{[p,o]=o_(p,o,"sphere");return{t:"ell",x,y,rx,ry,c,p,...o}};
+const P=(pts,c,p,o)=>{[p,o]=o_(p,o,"extrude");return{t:"poly",pts,c,p,...o}};
+const A=(x,y,rx,ry,a0,a1,c,p,o)=>{[p,o]=o_(p,o,"sphere");return{t:"arc",x,y,rx,ry,a0,a1,c,p,...o}};
+const L=(pts,c,w=2,p="curve")=>({t:"line",pts,c,w,p});
+const NF={fill:false};
+
+function ghostPts(){const p=[];for(let a=PI;a<=2*PI+1e-3;a+=PI/12)p.push([+(50+26*Math.cos(a)).toFixed(2),+(46+28*Math.sin(a)).toFixed(2)]);
+  [76,70,63,57,50,43,37,30,24].forEach((x,i)=>p.push([x,i%2?82:90]));return p}
+
+const SUBJECTS=[
+/* PROPS */
+{id:"mug",n:"coffee mug",cat:"Props",h:.1,start:"Cylinder (16 sides). Inset the top face and extrude it down for the cavity. Handle: a quarter‑bent Torus, or a curve with Bevel Depth.",parts:[
+ E(73,58,11,13,"main","torus",{fill:false,w:4.5}),R(26,32,44,54,"main","cyl",{r:4}),R(26,58,44,7,"accent","cyl"),E(48,32,22,4,"wood","cyl"),L([[40,24],[43,18],[40,12]],"light",1.6),L([[54,24],[57,18],[54,12]],"light",1.6)]},
+{id:"teapot",n:"teapot",cat:"Props",h:.18,start:"UV sphere squashed on Z. Extrude a ring of faces for the spout; Torus section for the handle; Cylinder lid.",parts:[
+ E(22,60,10,12,"main","torus",{fill:false,w:4.5}),P([[70,62],[86,42],[92,44],[78,72]],"main","cyl"),E(50,62,28,22,"main"),E(50,42,13,4,"accent","cyl"),C(50,35,4,"accent"),E(50,84,16,3,"dark","cyl")]},
+{id:"lantern",n:"lantern",cat:"Props",h:.3,start:"Cube for the frame; inset each side face for the glass panes. Torus handle on a Cylinder cap.",parts:[
+ E(50,14,5,5,"metal","torus",{fill:false,w:2.5}),R(38,19,24,8,"dark","cyl",{r:2}),R(35,27,30,44,"glow"),L([[50,27],[50,71]],"dark",2.4),L([[35,49],[65,49]],"dark",2),C(50,49,6,"light"),R(32,71,36,8,"dark","cube",{r:2})]},
+{id:"lamp",n:"desk lamp",cat:"Props",h:.45,start:"Cone for the shade, Cylinders for the arm segments. Parent the parts so you can pose it.",parts:[
+ E(50,86,22,5,"metal","cyl"),L([[50,84],[38,58],[56,34]],"dark",3,"cyl"),C(38,58,3,"metal"),P([[46,22],[76,34],[64,54],[34,40]],"main","cone"),C(62,48,5,"glow")]},
+{id:"clock",n:"alarm clock",cat:"Props",h:.15,start:"Cylinder rotated to face you; inset the front for the face. Bells are half UV spheres.",parts:[
+ C(30,22,9,"metal"),C(70,22,9,"metal"),L([[34,76],[26,90]],"dark",3,"cyl"),L([[66,76],[74,90]],"dark",3,"cyl"),R(46,16,8,6,"metal","cyl"),C(50,52,30,"main","cyl"),C(50,52,23,"light","cyl"),L([[50,52],[50,36]],"dark",2.4),L([[50,52],[62,58]],"dark",2.4),C(50,52,2.5,"dark")]},
+{id:"camera",n:"vintage camera",cat:"Props",h:.12,start:"Beveled Cube body; Cylinders stacked for the lens barrel; inset rings for the glass.",parts:[
+ R(22,26,18,12,"metal","cube",{r:2}),R(66,29,10,7,"accent","cyl"),R(14,34,72,46,"dark","cube",{r:5}),R(14,44,72,12,"main"),C(54,58,19,"metal","cyl"),C(54,58,13,"dark","cyl"),C(54,58,6,"glow"),R(20,62,12,8,"light","cube",{r:1})]},
+{id:"hourglass",n:"hourglass",cat:"Props",h:.25,start:"Two flat Cylinders for the caps; the glass is a Cylinder with the middle loop scaled in. Thin Cylinders for the posts.",parts:[
+ P([[34,22],[66,22],[52,50],[66,82],[34,82],[48,50]],"light","cyl"),P([[40,30],[60,30],[51,46],[49,46]],"glow"),P([[38,82],[62,82],[50,68]],"glow"),L([[50,47],[50,70]],"glow",1),L([[30,22],[30,82]],"wood",3,"cyl"),L([[70,22],[70,82]],"wood",3,"cyl"),R(24,14,52,8,"wood","cyl",{r:2}),R(24,82,52,8,"wood","cyl",{r:2})]},
+{id:"backpack",n:"backpack",cat:"Props",h:.45,start:"Cube with heavy Bevel and loop cuts; extrude the front pocket. Straps from a bent plane with Solidify.",parts:[
+ E(50,20,10,8,"dark","torus",{fill:false,w:3}),R(24,22,52,66,"main","cube",{r:14}),A(50,40,26,18,PI,2*PI,"accent","extrude"),R(34,58,32,22,"accent","cube",{r:6}),L([[37,64],[63,64]],"dark",1.4),R(46,38,8,8,"metal","cube",{r:1})]},
+/* FURNITURE */
+{id:"armchair",n:"armchair",cat:"Furniture",h:.95,start:"Beveled Cubes for back, seat and arms; Subdivision for softness. Tapered Cylinders for legs.",parts:[
+ R(22,14,56,46,"main","cube",{r:10}),R(26,54,48,18,"accent","cube",{r:5}),R(12,38,18,38,"main","cube",{r:7}),R(70,38,18,38,"main","cube",{r:7}),R(16,72,68,9,"main","cube",{r:3}),R(22,81,6,9,"wood","cyl"),R(72,81,6,9,"wood","cyl")]},
+{id:"bookshelf",n:"bookshelf",cat:"Furniture",h:1.8,start:"Cube frame with Solidify, or inset + extrude the front face. Books are scaled Cubes; use Array with random offsets.",parts:[
+ R(18,8,64,84,"wood"),R(23,13,54,74,"dark"),R(23,36,54,4,"wood"),R(23,62,54,4,"wood"),
+ R(26,17,6,19,"main"),R(33,15,5,21,"accent"),R(39,18,7,18,"light"),R(47,16,5,20,"main"),C(66,28,7,"accent"),
+ R(26,44,6,18,"accent"),R(33,42,6,20,"light"),R(40,45,5,17,"main"),R(52,55,22,7,"accent"),R(54,48,18,7,"light"),
+ R(26,68,10,19,"main"),R(37,70,8,17,"light"),R(48,72,26,15,"accent","cube",{r:2})]},
+{id:"stool",n:"bar stool",cat:"Furniture",h:.75,start:"Flat Cylinder seat; legs are thin Cylinders angled outward. Torus for the foot ring.",parts:[
+ L([[30,36],[22,90]],"metal",3.4,"cyl"),L([[70,36],[78,90]],"metal",3.4,"cyl"),L([[42,36],[40,90]],"metal",3,"cyl"),L([[58,36],[60,90]],"metal",3,"cyl"),L([[25,70],[75,70]],"metal",2.4,"torus"),R(26,28,48,8,"wood","cyl",{r:2}),E(50,28,24,6,"wood","cyl")]},
+{id:"sidetable",n:"side table with vase",cat:"Furniture",h:.6,start:"Cube top with Bevel; drawer is an inset front face. Vase: Cylinder, scale loops for the profile (or Screw a curve).",parts:[
+ P([[56,30],[68,30],[70,22],[66,12],[58,12],[54,22]],"accent","cyl"),R(14,30,72,7,"wood","cube",{r:2}),R(20,37,60,26,"wood"),R(28,42,44,14,"light","cube",{r:2}),C(50,49,2.2,"metal"),R(22,63,6,26,"wood"),R(72,63,6,26,"wood")]},
+/* FANTASY */
+{id:"potion",n:"potion bottle",cat:"Fantasy",h:.2,start:"UV sphere for the flask; extrude the top ring up into the neck. The cork is a tapered Cylinder.",parts:[
+ R(43,28,14,18,"light","cyl"),C(50,63,23,"main"),A(50,63,23,23,.2,PI-.2,"glow","extrude"),R(44,18,12,11,"wood","cyl",{r:2}),L([[38,52],[35,62]],"light",2.4)]},
+{id:"sword",n:"sword",cat:"Fantasy",h:1,start:"Plane extruded into the blade profile, Solidify for thickness, a center loop for the fuller. Guard and grip from Cubes and Cylinders.",parts:[
+ P([[50,6],[56,15],[56,62],[44,62],[44,15]],"light"),L([[50,14],[50,58]],"metal",1.2),R(30,62,40,7,"accent","cube",{r:2}),R(46,69,8,16,"wood","cyl"),C(50,89,5,"accent")]},
+{id:"shield",n:"round‑top shield",cat:"Fantasy",h:.8,start:"Plane cut to the outline, Solidify for thickness; inset the face for the rim. The boss is a flattened UV sphere.",parts:[
+ P([[20,16],[80,16],[80,48],[50,90],[20,48]],"main"),P([[27,22],[73,22],[73,46],[50,80],[27,46]],"accent","extrude",{fill:false,w:2.4}),L([[50,24],[50,76]],"accent",3),L([[28,42],[72,42]],"accent",3),C(50,42,8,"metal")]},
+{id:"chest",n:"treasure chest",cat:"Fantasy",h:.5,start:"Cube for the box; half a Cylinder (rotated) for the curved lid. Metal bands are thin extruded loops.",parts:[
+ R(18,48,64,38,"wood"),P([[18,50],[18,38],[28,28],[72,28],[82,38],[82,50]],"wood","cyl"),R(28,28,7,58,"accent"),R(65,28,7,58,"accent"),L([[18,50],[82,50]],"dark",1.6),R(45,44,10,12,"metal","cube",{r:1}),C(50,51,1.6,"dark")]},
+{id:"crystal",n:"crystal cluster",cat:"Fantasy",h:.4,start:"Six‑sided Cylinders; merge the top vertices to a point. Duplicate, rotate and vary the sizes. Flattened Icosphere for the rock base.",parts:[
+ E(50,86,32,6,"metal"),P([[30,86],[26,48],[32,38],[38,48],[40,86]],"light","cyl"),P([[60,86],[62,44],[70,34],[76,46],[72,86]],"light","cyl"),P([[40,86],[42,30],[50,12],[58,30],[60,86]],"main","cyl"),L([[50,14],[50,84]],"light",1.2)]},
+{id:"staff",n:"wizard staff",cat:"Fantasy",h:1.7,start:"A long Cylinder with a few loop cuts and slight bends. Claws from extruded cones; the orb is a UV sphere with an emission material.",parts:[
+ L([[54,92],[48,24]],"wood",4,"cyl"),L([[46,26],[38,12]],"wood",2.4,"cone"),L([[51,24],[58,9]],"wood",2.4,"cone"),C(48,15,8,"glow"),R(45,48,8,9,"accent","cyl",{rot:-5}),R(46,64,8,4,"accent","torus",{rot:-5})]},
+{id:"spellbook",n:"spellbook",cat:"Fantasy",h:.3,start:"Cube for the cover with Solidify edges; inset the page block. Emblem is an inset Cylinder; the clasp is a small beveled Cube.",parts:[
+ R(74,28,8,54,"light"),R(20,24,58,60,"main","cube",{r:3}),R(20,24,8,60,"dark"),C(53,52,12,"accent","cyl"),C(53,52,5,"glow"),R(72,48,10,10,"metal","cube",{r:1})]},
+/* NATURE */
+{id:"mushroom",n:"mushroom",cat:"Nature",h:.15,start:"UV sphere with the bottom half removed for the cap; a tapered Cylinder for the stem. Spots are flattened spheres.",parts:[
+ R(40,50,20,36,"light","cyl",{r:4}),A(50,52,34,28,PI,2*PI,"main"),E(50,52,34,4,"light","cyl"),C(36,38,5,"light"),C(56,32,6,"light"),C(68,44,4,"light")]},
+{id:"cactus",n:"potted cactus",cat:"Nature",h:.4,start:"Eight‑sided Cylinder for the body (the ribs come free). Extrude side faces for the arms. The pot is a tapered Cylinder.",parts:[
+ R(26,38,10,20,"main","cyl",{r:5}),R(26,52,18,8,"main","cyl"),R(64,30,10,22,"main","cyl",{r:5}),R(56,46,18,8,"main","cyl"),R(42,20,16,54,"main","cyl",{r:8}),L([[50,24],[50,70]],"dark",.8),P([[32,70],[68,70],[63,90],[37,90]],"accent","cyl"),R(30,66,40,7,"accent","cyl",{r:1})]},
+{id:"tree",n:"tree",cat:"Nature",h:4,start:"Tapered Cylinder trunk; Icospheres for leaf clumps. A Displace modifier with a noise texture breaks up the shape.",parts:[
+ R(44,54,12,34,"wood","cyl"),L([[50,62],[62,50]],"wood",3,"cyl"),C(32,48,17,"main"),C(68,48,17,"main"),C(50,30,22,"main"),C(40,40,4,"accent")]},
+{id:"campfire",n:"campfire",cat:"Nature",h:.6,start:"Cylinders for logs, crossed. Flames: a Cone with Displace, or a few extruded planes. Stones are flattened Icospheres.",parts:[
+ R(22,70,56,9,"wood","cyl",{r:4,rot:-18}),R(22,70,56,9,"wood","cyl",{r:4,rot:18}),
+ P([[38,74],[34,52],[42,58],[46,36],[52,52],[58,30],[62,54],[66,48],[64,74]],"accent","cone"),P([[44,74],[44,58],[50,62],[54,46],[58,74]],"glow","cone"),
+ E(20,86,8,5,"metal"),E(35,88,8,5,"metal"),E(50,89,8,5,"metal"),E(65,88,8,5,"metal"),E(80,86,8,5,"metal")]},
+{id:"bonsai",n:"bonsai tree",cat:"Nature",h:.4,start:"Curve with Bevel Depth for the trunk; flattened Icospheres for foliage pads. A shallow beveled Cube for the pot.",parts:[
+ L([[50,74],[46,62],[54,52],[46,40]],"wood",5,"curve"),E(34,40,16,8,"main"),E(64,48,14,7,"main"),E(50,30,14,8,"main"),P([[24,74],[76,74],[70,88],[30,88]],"accent","cube"),R(22,72,56,5,"accent","cube",{r:1})]},
+/* BUILDINGS */
+{id:"cottage",n:"cottage",cat:"Buildings",h:6,start:"Cube for the walls; a Cube with the top edge merged into a ridge for the roof. Inset faces for windows and the door.",parts:[
+ R(64,22,9,20,"accent"),R(22,48,56,40,"light"),P([[14,51],[50,18],[86,51]],"main"),R(44,62,13,26,"wood"),R(28,56,11,11,"glow"),R(62,56,11,11,"glow"),L([[33.5,56],[33.5,67]],"dark",1.1),L([[67.5,56],[67.5,67]],"dark",1.1)]},
+{id:"lighthouse",n:"lighthouse",cat:"Buildings",h:25,start:"Cylinder with the top ring scaled in for the taper. Loop cuts make the stripes; one material per band.",parts:[
+ P([[36,90],[41,32],[59,32],[64,90]],"light","cyl"),P([[38.6,60],[39.6,48],[60.4,48],[61.4,60]],"main","cyl"),P([[36.6,84],[37.6,72],[62.4,72],[63.4,84]],"main","cyl"),R(40,21,20,11,"glow","cyl"),P([[36,22],[50,8],[64,22]],"main","cone"),R(35,31,30,4,"dark","cyl"),R(46,76,8,14,"wood")]},
+{id:"windmill",n:"windmill",cat:"Buildings",h:12,start:"Tapered Cylinder tower with a half‑sphere cap. Blades are thin Planes; use an Array with an Empty to rotate four copies.",parts:[
+ P([[34,90],[40,36],[60,36],[66,90]],"light","cone"),A(50,38,11,10,PI,2*PI,"main"),R(45,74,10,16,"wood"),C(50,56,4,"glow"),
+ R(46,4,8,30,"wood","extrude",{rot:45,ox:50,oy:34}),R(46,4,8,30,"wood","extrude",{rot:135,ox:50,oy:34}),R(46,4,8,30,"wood","extrude",{rot:225,ox:50,oy:34}),R(46,4,8,30,"wood","extrude",{rot:315,ox:50,oy:34}),C(50,34,4,"dark","cyl")]},
+{id:"watertower",n:"water tower",cat:"Buildings",h:15,start:"Cylinder tank with a Cone roof. Legs are thin Cylinders; cross braces via Array or Curves.",parts:[
+ L([[30,50],[24,92]],"metal",3,"cyl"),L([[70,50],[76,92]],"metal",3,"cyl"),L([[42,50],[40,92]],"metal",2.6,"cyl"),L([[58,50],[60,92]],"metal",2.6,"cyl"),L([[27,72],[73,72]],"metal",1.8,"cyl"),
+ R(22,24,56,28,"main","cyl",{r:3}),L([[22,38],[78,38]],"dark",1),P([[20,25],[50,8],[80,25]],"dark","cone")]},
+{id:"stall",n:"market stall",cat:"Buildings",h:2.5,start:"Cubes for counter and posts. The awning is a Plane with loop cuts and alternating materials; scallops from a Curve.",parts:[
+ R(20,30,4,30,"wood","cyl"),R(76,30,4,30,"wood","cyl"),
+ R(14,18,12,16,"main"),R(26,18,12,16,"light"),R(38,18,12,16,"main"),R(50,18,12,16,"light"),R(62,18,12,16,"main"),R(74,18,12,16,"light"),
+ A(20,34,6,5,0,PI,"main","extrude"),A(32,34,6,5,0,PI,"light","extrude"),A(44,34,6,5,0,PI,"main","extrude"),A(56,34,6,5,0,PI,"light","extrude"),A(68,34,6,5,0,PI,"main","extrude"),A(80,34,6,5,0,PI,"light","extrude"),
+ C(30,52,5,"glow"),C(40,52,5,"main"),C(50,52,5,"accent"),R(60,46,16,11,"wood"),R(16,58,68,30,"wood","cube",{r:2}),R(14,56,72,5,"accent")]},
+{id:"well",n:"wishing well",cat:"Buildings",h:2.2,start:"Cylinder wall with Solidify; stones via a Bevel + Array or a brick texture. Roof from a Cube with a merged ridge.",parts:[
+ R(26,24,5,40,"wood"),R(69,24,5,40,"wood"),P([[20,26],[50,8],[80,26]],"main"),L([[30,34],[70,34]],"metal",2.4,"cyl"),L([[50,34],[50,48]],"dark",1),P([[44,48],[56,48],[55,58],[45,58]],"metal","cyl"),
+ R(20,58,60,30,"light","cyl",{r:3}),E(50,58,30,4,"dark","cyl"),L([[20,70],[80,70]],"dark",.8),L([[20,79],[80,79]],"dark",.8),L([[36,58],[36,70]],"dark",.8),L([[58,70],[58,79]],"dark",.8),L([[44,79],[44,88]],"dark",.8)]},
+/* VEHICLES */
+{id:"rocket",n:"rocket",cat:"Vehicles",h:30,start:"Cylinder with the top ring merged to a point. Fins are extruded faces from the bottom loop; mirror them.",parts:[
+ P([[50,94],[42,74],[58,74]],"glow","cone"),P([[38,56],[24,76],[38,72]],"main"),P([[62,56],[76,76],[62,72]],"main"),P([[50,6],[62,26],[62,74],[38,74],[38,26]],"light","cyl"),C(50,38,7,"glow","cyl"),R(38,62,24,5,"main","cyl")]},
+{id:"car",n:"little car",cat:"Vehicles",h:1.5,start:"Cube with loop cuts; extrude the cabin up. Wheels are Cylinders with an inset hubcap. Mirror modifier down the middle.",parts:[
+ P([[10,66],[14,50],[30,48],[40,34],[66,34],[76,48],[90,52],[90,66]],"main","cube"),P([[42,38],[52,38],[52,48],[34,48]],"light","extrude"),P([[56,38],[64,38],[72,48],[56,48]],"light","extrude"),C(30,68,10,"dark","cyl"),C(72,68,10,"dark","cyl"),C(30,68,4,"metal","cyl"),C(72,68,4,"metal","cyl"),R(84,54,5,4,"glow")]},
+{id:"boat",n:"sailboat",cat:"Vehicles",h:6,start:"Cube with the bottom edge scaled in for the hull; loop cuts to curve it. Sails are Planes with a slight bend.",parts:[
+ L([[50,12],[50,64]],"wood",2.4,"cyl"),P([[53,16],[53,58],[80,58]],"light","extrude"),P([[47,22],[47,58],[26,58]],"accent","extrude"),P([[50,12],[60,15],[50,18]],"main","extrude"),P([[12,62],[88,62],[76,82],[24,82]],"wood","cube"),L([[16,88],[30,85],[44,88],[58,85],[72,88],[86,85]],"metal",1.4)]},
+{id:"balloon",n:"hot‑air balloon",cat:"Vehicles",h:18,start:"UV sphere; scale the bottom loops in to make the teardrop. Basket is a beveled Cube; ropes are Curves.",parts:[
+ E(50,36,30,30,"main"),P([[22,46],[78,46],[60,70],[40,70]],"main","sphere"),E(50,36,11,30,"accent"),P([[40,46],[60,46],[54,70],[46,70]],"accent","sphere"),L([[41,70],[43,80]],"dark",1),L([[59,70],[57,80]],"dark",1),R(40,80,20,12,"wood","cube",{r:2})]},
+{id:"sub",n:"submarine",cat:"Vehicles",h:8,start:"UV sphere stretched on X for the hull; beveled Cube for the tower. Inset circles for portholes; the propeller is an Array of planes.",parts:[
+ R(38,30,20,18,"main","cube",{r:3}),L([[52,30],[52,18],[59,18]],"metal",2.2,"cyl"),P([[84,48],[92,42],[92,70],[84,64]],"metal","extrude"),E(48,56,36,16,"main"),C(32,56,4.5,"glow","cyl"),C(47,56,4.5,"glow","cyl"),C(62,56,4.5,"glow","cyl")]},
+/* CREATURES */
+{id:"fish",n:"fish",cat:"Creatures",h:.3,start:"UV sphere stretched on X. Pull the back vertices into the tail; extrude a few faces for fins.",parts:[
+ P([[68,52],[90,34],[86,52],[90,70]],"accent","extrude"),P([[40,38],[52,28],[58,40]],"accent","extrude"),E(46,52,28,17,"main"),C(30,47,3.4,"dark"),A(34,56,6,4,0,PI,"dark","curve",{fill:false,w:1.4}),L([[52,44],[56,52],[52,60]],"dark",1.2)]},
+{id:"robot",n:"robot",cat:"Creatures",h:1.2,start:"Beveled Cubes for head and body; Cylinders for limbs. Keep parts separate so you can pose it later.",parts:[
+ L([[50,18],[50,8]],"dark",2,"cyl"),C(50,7,3.5,"accent"),R(18,50,10,22,"light","cyl",{r:4}),R(72,50,10,22,"light","cyl",{r:4}),R(32,18,36,26,"light","cube",{r:4}),C(42,30,4.5,"glow","cyl"),C(58,30,4.5,"glow","cyl"),R(28,46,44,30,"main","cube",{r:4}),R(42,54,16,10,"accent","cube",{r:2}),R(34,76,10,12,"dark","cyl"),R(56,76,10,12,"dark","cyl")]},
+{id:"ghost",n:"ghost",cat:"Creatures",h:1.6,start:"UV sphere, delete the bottom half, extrude the open edge down. Proportional editing for the wavy hem.",parts:[
+ P(ghostPts(),"light","sphere"),E(41,40,4,6,"dark"),E(59,40,4,6,"dark"),E(50,54,4,3,"dark"),C(33,50,3,"main"),C(67,50,3,"main")]},
+{id:"snowman",n:"snowman",cat:"Creatures",h:1.7,start:"Three UV spheres. Cone nose, Cylinder hat; the scarf is a Torus plus a bent Plane with Solidify.",parts:[
+ C(50,74,19,"light"),C(50,47,14,"light"),C(50,26,10.5,"light"),R(53,36,6,14,"main","extrude",{r:2}),R(37,34,26,6,"main","torus",{r:3}),R(40,7,20,11,"dark","cyl"),R(36,16,28,3,"dark","cyl"),C(46,24,1.5,"dark"),C(54,24,1.5,"dark"),P([[50,26],[62,28],[50,29.5]],"accent","cone"),C(50,46,1.7,"dark"),C(50,54,1.7,"dark")]},
+{id:"owl",n:"owl on a branch",cat:"Creatures",h:.4,start:"UV sphere body stretched on Z; inset circles for the eyes. Ear tufts are extruded faces. Curve with bevel for the branch.",parts:[
+ R(14,86,72,5,"wood","cyl",{r:2}),P([[30,28],[33,12],[42,24]],"main","extrude"),P([[70,28],[67,12],[58,24]],"main","extrude"),E(50,56,24,31,"main"),E(50,66,15,19,"light"),C(41,40,8,"light","cyl"),C(59,40,8,"light","cyl"),C(41,40,4,"dark"),C(59,40,4,"dark"),P([[47,46],[53,46],[50,53]],"accent","cone"),E(43,86,5,3,"accent"),E(57,86,5,3,"accent")]},
+{id:"penguin",n:"penguin",cat:"Creatures",h:.7,start:"UV sphere stretched on Z; a second, smaller one for the belly (or a separate material on the front faces). Flippers are flattened spheres.",parts:[
+ E(50,52,22,34,"dark"),E(50,58,15,26,"light"),E(28,58,5,16,"dark","sphere",{rot:18}),E(72,58,5,16,"dark","sphere",{rot:-18}),C(44,32,4,"light"),C(56,32,4,"light"),C(44,32,2,"dark"),C(56,32,2,"dark"),P([[45,38],[55,38],[50,46]],"accent","cone"),E(42,87,7,3,"accent"),E(58,87,7,3,"accent")]},
+/* FOOD */
+{id:"cupcake",n:"cupcake",cat:"Food",h:.09,start:"Tapered Cylinder wrapper with loop cuts for the folds. Frosting: stacked Tori, or a Cylinder with a Screw modifier.",parts:[
+ P([[28,58],[72,58],[65,88],[35,88]],"accent","cyl"),L([[40,60],[42,86]],"dark",1),L([[50,60],[50,86]],"dark",1),L([[60,60],[58,86]],"dark",1),E(50,56,26,9,"main","torus"),E(50,46,20,9,"main","torus"),E(50,36,12,7,"main","torus"),C(52,24,6,"glow")]},
+{id:"burger",n:"burger",cat:"Food",h:.12,start:"Stack of flattened Cylinders. Top bun is half a UV sphere; sesame seeds with a particle system or a few duplicates.",parts:[
+ R(22,72,56,12,"wood","cyl",{r:4}),R(20,63,60,9,"dark","cyl",{r:3}),P([[18,63],[82,63],[76,58],[24,58]],"glow","extrude"),L([[18,58],[28,54],[38,58],[48,54],[58,58],[68,54],[82,58]],"accent",3.2,"extrude"),A(50,56,32,26,PI,2*PI,"wood"),E(40,40,2,1.2,"light"),E(55,36,2,1.2,"light"),E(64,44,2,1.2,"light")]},
+{id:"donut",n:"donut",cat:"Food",h:.1,start:"Torus. Duplicate it, delete the bottom half and add Solidify for the icing; sculpt drips with the Grab brush.",parts:[
+ E(50,58,34,24,"wood","torus"),E(50,54,30,19,"main","torus"),E(50,56,10,6,"dark","torus"),L([[30,50],[33,47]],"glow",2),L([[66,48],[70,50]],"accent",2),L([[44,40],[48,42]],"accent",2),L([[58,66],[62,64]],"glow",2),L([[36,62],[38,66]],"accent",2)]},
+{id:"icecream",n:"ice cream cone",cat:"Food",h:.2,start:"Cone for the waffle (a grid texture or wire‑frame lines). Scoops are UV spheres with a Displace for the rough bottom edge.",parts:[
+ P([[34,52],[66,52],[50,92]],"wood","cone"),L([[40,58],[56,82]],"dark",.9),L([[60,58],[44,82]],"dark",.9),L([[46,56],[58,72]],"dark",.9),L([[54,56],[42,72]],"dark",.9),C(50,46,15,"light"),C(50,28,12,"main"),C(52,15,4.5,"accent"),L([[52,11],[56,5]],"wood",1)]},
+{id:"pizza",n:"slice of pizza",cat:"Food",h:.25,start:"Triangle Plane with Solidify; the crust is a bent Cylinder along the back edge. Pepperoni are thin Cylinders.",parts:[
+ P([[50,90],[18,22],[82,22]],"glow","extrude"),R(14,14,72,10,"wood","cyl",{r:5}),C(40,36,6,"main","cyl"),C(60,40,6,"main","cyl"),C(50,58,5.5,"main","cyl"),C(50,76,3.2,"main","cyl"),C(66,30,2.4,"dark","torus"),C(36,52,2.4,"dark","torus")]},
+{id:"cake",n:"layered cake",cat:"Food",h:.3,start:"Two Cylinders for the tiers; frosting drips by extruding a ring of faces. Candles are thin Cylinders; flames are UV spheres.",parts:[
+ E(50,88,38,4,"light","cyl"),R(18,58,64,30,"main","cyl",{r:3}),R(30,32,40,26,"light","cyl",{r:3}),L([[18,63],[26,66],[34,63],[42,66],[50,63],[58,66],[66,63],[74,66],[82,63]],"accent",2.6),L([[30,40],[70,40]],"main",2.2),R(39,20,3,12,"accent","cyl"),R(48.5,18,3,14,"accent","cyl"),R(58,20,3,12,"accent","cyl"),E(40.5,16,1.8,3,"glow"),E(50,14,1.8,3,"glow"),E(59.5,16,1.8,3,"glow")]},
+/* TECH */
+{id:"tv",n:"retro TV",cat:"Tech",h:.6,start:"Beveled Cube body; inset and extrude the screen inward. Knobs are Cylinders; antennas are thin Cylinders.",parts:[
+ L([[50,22],[36,6]],"metal",1.6,"cyl"),L([[50,22],[64,6]],"metal",1.6,"cyl"),C(50,22,3,"dark"),R(14,22,72,56,"wood","cube",{r:6}),R(20,28,46,44,"dark","cube",{r:8}),P([[26,34],[38,34],[26,46]],"light","extrude",{op:.35}),C(76,38,4,"metal","cyl"),C(76,52,4,"metal","cyl"),L([[71,62],[81,62]],"dark",1),L([[71,66],[81,66]],"dark",1),L([[24,78],[20,90]],"dark",3,"cyl"),L([[76,78],[80,90]],"dark",3,"cyl")]},
+{id:"controller",n:"game controller",cat:"Tech",h:.15,start:"Cube with heavy Subdivision; pull the grips down. D‑pad and buttons are inset/extruded faces or small Cylinders.",parts:[
+ E(26,58,14,20,"main","sphere",{rot:22}),E(74,58,14,20,"main","sphere",{rot:-22}),R(14,34,72,30,"main","cube",{r:15}),R(22,44,14,5,"dark"),R(26.5,39.5,5,14,"dark"),C(70,41,3.5,"accent","cyl"),C(77,48,3.5,"glow","cyl"),C(63,48,3.5,"light","cyl"),C(70,55,3.5,"metal","cyl"),C(40,58,5,"dark","cyl"),C(60,58,5,"dark","cyl"),R(46,40,8,3,"light","cube",{r:1})]},
+{id:"headphones",n:"pair of headphones",cat:"Tech",h:.2,start:"Torus segment for the headband; Cylinders with beveled edges for the ear cups.",parts:[
+ A(50,56,30,34,PI,2*PI,"dark","torus",{fill:false,w:4.5}),R(14,52,16,28,"main","cyl",{r:4}),R(70,52,16,28,"main","cyl",{r:4}),R(22,56,6,20,"accent","cyl",{r:2}),R(72,56,6,20,"accent","cyl",{r:2})]},
+{id:"boombox",n:"boombox",cat:"Tech",h:.5,start:"Beveled Cube body; speaker cones are inset Cylinders. The handle is a bent Cylinder or a Curve.",parts:[
+ A(50,28,24,14,PI,2*PI,"metal","torus",{fill:false,w:3.4}),R(8,28,84,52,"dark","cube",{r:5}),C(27,57,15,"metal","cyl"),C(27,57,8,"dark","cone"),C(73,57,15,"metal","cyl"),C(73,57,8,"dark","cone"),R(42,46,16,22,"light","cube",{r:2}),C(46.5,57,2.5,"dark","cyl"),C(53.5,57,2.5,"dark","cyl"),R(40,33,20,8,"glow","cube",{r:1}),R(13,33,7,4,"accent"),R(22,33,7,4,"accent")]},
+{id:"satellite",n:"satellite",cat:"Tech",h:4,start:"Beveled Cube body; solar panels are thin Cubes with an Array for the cells. The dish is half a UV sphere with Solidify.",parts:[
+ R(6,40,30,18,"accent","extrude"),R(64,40,30,18,"accent","extrude"),L([[16,40],[16,58]],"dark",.8),L([[26,40],[26,58]],"dark",.8),L([[74,40],[74,58]],"dark",.8),L([[84,40],[84,58]],"dark",.8),L([[36,49],[42,49]],"metal",2,"cyl"),L([[58,49],[64,49]],"metal",2,"cyl"),R(40,34,20,30,"metal","cube",{r:2}),A(50,26,14,8,0,PI,"light"),L([[50,26],[50,12]],"metal",1.4,"cyl"),C(50,11,2,"glow")]},
+/* TOOLS */
+{id:"hammer",n:"hammer",cat:"Tools",h:.35,start:"Cylinder handle with a slight taper; the head is a beveled Cube, extrude and split one end for the claw.",parts:[
+ R(46,32,8,58,"wood","cyl",{r:3,rot:18,ox:50,oy:50}),R(46,70,8,18,"dark","cyl",{r:3,rot:18,ox:50,oy:50}),R(24,16,52,15,"metal","cube",{r:2,rot:18,ox:50,oy:50})]},
+{id:"wateringcan",n:"watering can",cat:"Tools",h:.4,start:"Cylinder body; extrude a ring of faces for the spout and taper it. Handle from a bent Cylinder.",parts:[
+ A(46,40,22,22,PI,2*PI,"main","torus",{fill:false,w:4}),P([[66,64],[88,32],[93,36],[72,74]],"main","cyl"),E(91,32,5,7,"metal","cyl",{rot:-35}),R(22,40,48,46,"main","cyl",{r:5}),R(22,50,48,5,"accent","cyl"),E(46,40,24,4,"dark","cyl")]},
+{id:"toolbox",n:"toolbox",cat:"Tools",h:.45,start:"Cube with Solidify; split the top for the lid. The handle is a bent Cylinder; latches are small beveled Cubes.",parts:[
+ A(50,32,14,10,PI,2*PI,"metal","torus",{fill:false,w:3.4}),R(14,40,72,46,"main","cube",{r:3}),R(12,34,76,10,"main","cube",{r:3}),R(24,40,8,8,"metal","cube",{r:1}),R(68,40,8,8,"metal","cube",{r:1}),L([[14,60],[86,60]],"dark",1.2),R(40,64,20,10,"light","extrude",{r:1})]},
+{id:"anvil",n:"anvil",cat:"Tools",h:.4,start:"Start from a Cube: extrude the horn out and taper it; loop cuts and scaling for the waist. Use a Bevel modifier for the edges.",parts:[
+ R(26,74,48,14,"dark","cube",{r:1}),P([[16,30],[70,30],[86,26],[88,32],[74,40],[62,44],[58,58],[70,66],[70,74],[30,74],[30,66],[42,58],[38,44],[24,40]],"metal","cube"),L([[20,33],[68,33]],"light",1.1)]}
+];
+const VIBES={mug:"everyday,rustic",teapot:"everyday,rustic",lantern:"rustic,fantasy,adventure",lamp:"everyday,tech",clock:"everyday,tech",camera:"tech,everyday,adventure",hourglass:"fantasy,rustic",backpack:"everyday,adventure",
+ armchair:"everyday",bookshelf:"everyday,fantasy",stool:"everyday,industrial",sidetable:"everyday",
+ potion:"fantasy",sword:"fantasy",shield:"fantasy",chest:"fantasy,adventure",crystal:"fantasy,nature",staff:"fantasy",spellbook:"fantasy",
+ mushroom:"nature,fantasy",cactus:"nature,everyday",tree:"nature",campfire:"adventure,nature,rustic",bonsai:"nature,everyday",
+ cottage:"rustic,fantasy",lighthouse:"rustic,adventure",windmill:"rustic",watertower:"rustic,industrial",stall:"everyday,rustic,food",well:"rustic,fantasy",
+ rocket:"tech,adventure",car:"everyday,tech",boat:"adventure",balloon:"adventure",sub:"tech,adventure",
+ fish:"nature",robot:"tech",ghost:"fantasy",snowman:"everyday,nature",owl:"nature,fantasy",penguin:"nature",
+ cupcake:"food",burger:"food",donut:"food",icecream:"food",pizza:"food",cake:"food",
+ tv:"tech,everyday",controller:"tech",headphones:"tech",boombox:"tech",satellite:"tech,adventure",
+ hammer:"rustic,industrial",wateringcan:"rustic,nature",toolbox:"industrial",anvil:"rustic,fantasy,industrial"};
+SUBJECTS.forEach(s=>s.v=(VIBES[s.id]||"everyday").split(","));
+const themeFits=(k,s)=>THEME_VIBES[k]==="*"||THEME_VIBES[k].split(",").some(v=>s.v.includes(v));
+const SUB=Object.fromEntries(SUBJECTS.map(s=>[s.id,s]));
+const CATS=[...new Set(SUBJECTS.map(s=>s.cat))];
+
+/* ================= GUIDES ================= */
+/* node kinds, colored like Blender's node headers */
+const NK={in:"#C2425A",sh:"#3DBE7A",tx:"#F28C28",co:"#D9C341",cv:"#4FA3D9",vec:"#8D7BE0",out:"#B33A3A",md:"#9AA0A6",op:"#9AA0A6"};
+const GCATS=["Toon & NPR","Lighting","Render styles","Materials","Compositor","Render settings","Camera","Modifiers","UV & topology","Shortcuts","Modifier index","Shader node index","Compositor node index"];
+/* index rows: "Name::what it does" */
+const GUIDES=[
+/* TOON & NPR */
+{id:"toon",c:"Toon & NPR",t:"Basic toon shader",sk:"mat",tags:["toon","cel","anime","EEVEE"],s:"Flat light and shadow bands from real scene lighting.",
+ n:[["Diffuse BSDF","sh"],["Shader to RGB","cv"],["Color Ramp · Constant","cv"],["Mix · Multiply (base color)","co"],["Material Output","out"]],
+ st:["Render engine: EEVEE. Shader to RGB does not work in Cycles.","Color Management › View Transform: Standard, so your band colors stay exactly as picked (AgX shifts them).","Diffuse BSDF → Shader to RGB → Color Ramp. Set the ramp's interpolation to Constant and use 2–3 stops.","Color the ramp in grays, then Mix (Multiply) with your base color so one shader works for any color.","Light with a single Sun lamp; lower its Angle for crisp shadow edges."],
+ tip:"Shift shadow colors toward blue or purple instead of darker versions of the base color. It reads far more \"anime\". Blender 5.1+ also has a Raycast node for advanced toon tricks."},
+{id:"rim",c:"Toon & NPR",t:"Toon rim light",sk:"mat",tags:["toon","rim","fresnel"],s:"A bright edge band added on top of the toon shader.",
+ n:[["Layer Weight · Facing","in"],["Color Ramp · Constant","cv"],["Mix · Add / Screen","co"]],
+ st:["Add Layer Weight and take its Facing output.","Feed it into a Color Ramp set to Constant; slide the stop so only the outer edge is white.","Mix it over the toon result with Add or Screen. Multiply the mask by the Shader to RGB output first if you want the rim only on the lit side."],
+ tip:"Keep the rim thin (Blend 0.3–0.5). A thick rim flattens the form."},
+{id:"hull",c:"Toon & NPR",t:"Inverted hull outlines",sk:"mods",tags:["toon","outline","lines"],s:"Cheap, fast outlines with a Solidify modifier and a black backface material.",
+ n:[["Solidify modifier","md"],["Flip Normals","md"],["Material Offset 1","md"]],
+ st:["Add a second material slot: black Emission (or Principled with base color black).","Add Solidify: Thickness −0.01 to −0.03 (scale‑dependent), enable Normals › Flip, set Materials › Material Offset to 1.","On the outline material: Settings › Backface Culling (Camera) on, for EEVEE.","For Cycles: mix the outline with a Transparent BSDF using Geometry › Backfacing as the factor."],
+ tip:"Apply scale first (Ctrl+A › Scale), or the outline thickness will vary between objects."},
+{id:"lineart",c:"Toon & NPR",t:"Line Art outlines",sk:"light",tags:["toon","outline","lines","grease pencil"],s:"Grease Pencil lines that follow contours, creases and silhouettes.",
+ n:[["Add › Grease Pencil › Scene Line Art","op"],["Line Art modifier","md"]],
+ st:["Add › Grease Pencil › Scene Line Art (or Collection Line Art for just one collection).","In the Line Art modifier, choose Edge Types: Contour, Silhouette, Crease. Lower the Crease threshold to catch more edges.","Adjust line thickness and color on the modifier and the Grease Pencil material.","Works in both EEVEE and Cycles renders."],
+ tip:"Line Art is more controllable than Freestyle and renders much faster."},
+{id:"freestyle",c:"Toon & NPR",t:"Freestyle lines",sk:"light",tags:["outline","lines","technical"],s:"Render-time lines, good for technical and illustration looks.",
+ n:[["Render › Freestyle ✓","op"],["View Layer › Line Set","op"]],
+ st:["Render Properties › Freestyle: enable it and set Line Thickness.","View Layer Properties › Freestyle Line Set: choose edge types (Silhouette, Border, Crease).","Use a Line Style with Thickness modifiers (Along Stroke) for a hand‑drawn taper."],
+ tip:"It only shows in final renders (F12), not the viewport."},
+{id:"anime",c:"Toon & NPR",t:"Anime cel look",sk:"mat",tags:["toon","anime","cel"],s:"Combining toon bands, outlines and hard light for a 2D animation feel.",
+ st:["Toon shader with 2 bands (light, shadow), shadow hue‑shifted.","Inverted hull outlines, slightly thicker on the silhouette.","One Sun light at a steep angle, Angle 0°, plus a dim fill from the World color.","View Transform: Standard. Turn off ambient occlusion for flat shadows.","For faces: smooth shading with clean, even topology; transfer normals from a sphere (Data Transfer modifier › Custom Normals) for soft face shading."],
+ tip:"Fewer, bigger shapes in the shadow pattern reads better than accurate shading."},
+{id:"painterly",c:"Toon & NPR",t:"Painterly brush look",sk:"mat",tags:["stylized","painterly","NPR"],s:"Break the toon edge with noise so it looks hand‑painted.",
+ n:[["Noise Texture","tx"],["Mix · Linear Light (low factor)","co"],["Shader to RGB","cv"],["Color Ramp · Constant","cv"]],
+ st:["Build the basic toon shader.","Add Noise Texture (Scale 8–20, Detail 2) and mix it into the light value before the Color Ramp, at a low factor (0.1–0.3).","The band edges now wobble like brush strokes. Raise Noise Scale for finer strokes."],
+ tip:"Use Object texture coordinates so the strokes stay put when the object moves."},
+/* LIGHTING */
+{id:"3point",c:"Lighting",t:"Three‑point lighting",sk:"light",tags:["studio","portrait","product"],s:"Key, fill and rim: the default setup for showing off a model.",
+ st:["Key: Area light about 45° to one side and above the subject. It's the brightest light.","Fill: on the opposite side, larger size for softness, about ⅓–½ of the key's power.","Rim/back: behind the subject aimed at its edges to separate it from the background.","Set the World to a dark, low‑strength color so the lights do the work."],
+ tip:"Light power depends on scene scale. Model at real size (Hard rule) and these ratios stay useful."},
+{id:"hdri",c:"Lighting",t:"HDRI lighting",sk:"light",tags:["realistic","reflections","quick"],s:"Light the whole scene from a photo of a real environment.",
+ n:[["Texture Coordinate","in"],["Mapping (rotate Z)","vec"],["Environment Texture","tx"],["Background","sh"],["World Output","out"]],
+ st:["World Properties › Color: click the dot and choose Environment Texture, then open an .hdr/.exr file (Poly Haven has free ones).","In the Shader Editor (World), add Texture Coordinate › Generated → Mapping → Environment Texture, and rotate Mapping's Z to move the sun.","Adjust Background Strength for overall brightness.","Hide the HDRI in renders but keep its light: Render › Film › Transparent."],
+ tip:"Mix in a plain color for the background with a Light Path › Is Camera Ray factor."},
+{id:"product",c:"Lighting",t:"Studio product shot",sk:"light",tags:["product","clean","studio"],s:"Seamless backdrop with big soft lights.",
+ st:["Backdrop: a Plane, extrude its back edge up, then Bevel the corner with many segments for a smooth curve.","Two large Area lights (Size 2–4 m), one key, one fill from the other side.","A small rim light from behind for edge highlights on glossy parts.","Camera: 85–135 mm focal length to avoid distortion."],
+ tip:"In Cycles, Object › Visibility › Shadow Catcher lets you render the object over transparency with its shadow."},
+{id:"golden",c:"Lighting",t:"Golden hour / sunset",sk:"light",tags:["outdoor","warm","mood"],s:"Low warm sun, long shadows, cool sky fill.",
+ st:["Sun light low to the horizon (a few degrees), warm orange color.","World: a Sky Texture with low sun elevation (Cycles) or a blue‑ish World color for cool fill.","Raise the Sun's Angle (1–3°) for softer shadow edges.","Add Volume Scatter (low density) to the World for haze if you want light shafts."],
+ tip:"Warm key plus cool fill is the contrast that sells it. Don't make everything orange."},
+{id:"lowkey",c:"Lighting",t:"Moody low‑key",sk:"light",tags:["dramatic","dark","haunted"],s:"One hard light, deep shadows, a little haze.",
+ st:["World color near black.","A single Spot or Area light from the side or top; small size for hard shadows.","World › Volume: Volume Scatter, Density 0.01–0.05, for visible light beams.","Optional: a dim, colored rim light so the silhouette doesn't vanish."],
+ tip:"Volumetrics are slow. Test with low samples, then raise for the final render."},
+{id:"neon",c:"Lighting",t:"Neon / cyberpunk",sk:"light",tags:["cyberpunk","neon","glow"],s:"Emissive strips, colored lights and wet reflections.",
+ st:["Emission materials for neon tubes (Strength 5–20).","Colored Area lights to back them up: magenta from one side, cyan from the other.","Ground: low Roughness (0.05–0.2) with a Noise texture driving roughness for puddles.","Add bloom with the compositor Glare node. See Compositor › Bloom & glare."],
+ tip:"Since Blender 4.2, emission alone does light the scene in EEVEE, but real lamps give cleaner shadows."},
+/* RENDER STYLES */
+{id:"clay",c:"Render styles",t:"Clay render",sk:"light",tags:["clay","portfolio","topology"],s:"Neutral gray look that shows off form and topology.",
+ st:["View Layer Properties › Material Override: pick a gray Principled material (Roughness 0.5–0.7).","Soft lighting: large Area key plus HDRI at low strength.","Optional wireframe: Wireframe modifier on a duplicate, or Freestyle with Edge Marks.","Cycles gives the nicest contact shadows; enable Fast GI or keep default bounces."],
+ tip:"A slightly warm or blue‑gray clay looks more finished than pure 50% gray."},
+{id:"lowpoly",c:"Render styles",t:"Low‑poly flat",sk:"form",tags:["low-poly","flat","stylized"],s:"Visible facets and flat colors.",
+ st:["Use few segments on primitives; right‑click › Shade Flat.","Decimate modifier (Collapse or Planar) to reduce existing meshes.","Flat colors per face: assign materials per face, or UV‑map faces onto a small color‑palette texture.","Soft Sun + World fill; skip textures."],
+ tip:"A palette texture lets one material color the whole scene. Scale the UVs down onto each swatch."},
+{id:"iso",c:"Render styles",t:"Isometric diorama",sk:"light",tags:["isometric","diorama","miniature"],s:"The classic tilted-cube diorama camera.",
+ n:[["Camera › Type: Orthographic","op"],["Rotation X 54.736°, Z 45°","op"]],
+ st:["Camera Type: Orthographic. Rotation X 54.736°, Y 0°, Z 45° for true isometric (X 60° for a common 2:1 game look).","Use Orthographic Scale to frame instead of moving the camera closer.","Build on a beveled base block; keep the scene inside a square footprint.","Soft lighting plus AO makes the miniature feel tactile."],
+ tip:"Depth of field with a very low F‑stop on an orthographic camera fakes tilt‑shift miniature blur."},
+{id:"stylized",c:"Render styles",t:"Stylized PBR",sk:"mat",tags:["stylized","hand-painted","game"],s:"Hand‑painted color variation with exaggerated edge highlights.",
+ n:[["Noise Texture","tx"],["Color Ramp","cv"],["Ambient Occlusion","in"],["Mix · Multiply","co"],["Principled BSDF","sh"]],
+ st:["Base color: Noise Texture → Color Ramp between two close shades of the same hue.","Darken crevices: Ambient Occlusion node (Color output) multiplied in.","Edge highlights: in Cycles, Geometry › Pointiness → Color Ramp mixed lighter onto edges.","Bevel every edge so highlights have something to catch."],
+ tip:"Exaggerate shapes (chunky bevels, thick silhouettes) more than you think. Stylized lives in proportion."},
+{id:"realistic",c:"Render styles",t:"Semi‑realistic",sk:"mat",tags:["realistic","Cycles","PBR"],s:"Real scale, real lighting, imperfect surfaces.",
+ st:["Model at real‑world scale (meters) and bevel every edge. Nothing in reality is perfectly sharp.","Cycles render engine, View Transform: AgX.","Light with an HDRI plus one Area key.","Add roughness variation (Noise → Color Ramp → Roughness) and a subtle bump.","Camera at 50–85 mm and a little depth of field."],
+ tip:"Imperfection is the main realism trick: smudges in roughness, slightly uneven edges, dust in crevices."},
+{id:"pixel",c:"Render styles",t:"Pixel‑art render",sk:"light",tags:["pixel","retro","game"],s:"Render small and crisp for a retro sprite look.",
+ st:["Output resolution low (e.g., 256×256) at 100%.","Toon shader with 2–3 bands and View Transform: Standard.","Compositor: Pixelate node, or keep resolution low and scale up with Nearest in your image viewer.","Orthographic camera for sprite consistency."],
+ tip:"Render from 8 camera angles with the same settings to make a game sprite sheet."},
+/* MATERIALS */
+{id:"glass",c:"Materials",t:"Glass",sk:"mat",tags:["glass","transparent","EEVEE","Cycles"],s:"Clear or frosted glass that works in both engines.",
+ n:[["Principled BSDF · Transmission 1","sh"]],
+ st:["Principled BSDF: Transmission Weight 1, Roughness 0–0.05 (0.2+ for frosted), IOR 1.45–1.5.","EEVEE: Render Properties › Raytracing on. Material › Settings › Render Method: Dithered and enable Raytraced Transmission.","Give the glass real thickness (Solidify) so refraction looks right.","Glass needs something to refract: an HDRI or a detailed background."],
+ tip:"Colored glass: tint the Base Color lightly. Strong tints turn black quickly."},
+{id:"metal",c:"Materials",t:"Metals",sk:"mat",tags:["metal","steampunk","hard-surface"],s:"Gold, copper, steel and brushed metal.",
+ n:[["Principled BSDF · Metallic 1","sh"]],
+ st:["Metallic 1. The Base Color is the reflection tint: gold #FFC356, copper #F0A27A, steel #C4C7CC.","Roughness 0.15–0.35 for polished, 0.4–0.6 for worn.","Brushed: Anisotropic 0.5–0.8 plus stretched Noise in Roughness.","Metal is mostly reflection, so it needs an environment (HDRI) to look right."],
+ tip:"Metal in a dark empty world looks black. Light it with reflections, not lamps."},
+{id:"emission",c:"Materials",t:"Emission (glowing surfaces)",sk:"mat",tags:["emission","glow","neon","lights"],s:"Materials that give off light: screens, neon, magic, lava.",
+ n:[["Principled BSDF · Emission","sh"]],
+ st:["Principled BSDF › Emission: set Emission Color and Strength (5–20 for neon, 1–3 for screens).","Or use a plain Emission shader for flat, unlit glow (toon effects, UI screens).","Since 4.2, emissive surfaces light the scene in EEVEE too; add a real lamp nearby for cleaner shadows.","The visible halo is a compositor effect. See Compositor › Bloom & glare."],
+ tip:"Drive the strength with a Noise or Wave texture for flickering lights and pulsing magic."},
+{id:"sss",c:"Materials",t:"Subsurface (skin, wax, candy)",sk:"mat",tags:["skin","wax","candy","soft"],s:"Light that soaks into the surface.",
+ n:[["Principled BSDF · Subsurface","sh"]],
+ st:["Principled: Subsurface Weight 0.1–0.3 for skin, 0.5–1 for wax and candy.","Subsurface Radius sets per‑channel depth (red deepest for skin).","Subsurface Scale must match object size: small objects need small values, roughly 0.01–0.1 at real scale.","Backlight it to see the effect."],
+ tip:"Too much subsurface turns everything into gummy plastic. Start low."},
+{id:"wear",c:"Materials",t:"Edge wear",sk:"mat",tags:["wear","worn","post-apocalyptic","hard-surface"],s:"Scratched paint revealing metal on the edges.",
+ n:[["Geometry · Pointiness","in"],["Noise Texture","tx"],["Color Ramp","cv"],["Mix Shader (paint ↔ metal)","sh"]],
+ st:["Two shaders: painted Principled, and bare metal Principled.","Mask: Geometry › Pointiness (Cycles, needs dense mesh) or an Ambient Occlusion node with Inside on, through a Color Ramp.","Break the mask with Noise Texture (multiply) so wear is patchy.","Mix Shader with the mask as factor."],
+ tip:"For EEVEE and games, bake the mask to an image texture."},
+{id:"wood",c:"Materials",t:"Procedural wood",sk:"mat",tags:["wood","rustic","procedural"],s:"Grain rings from a single Wave texture.",
+ n:[["Texture Coordinate · Object","in"],["Mapping (stretch X)","vec"],["Wave Texture · Rings","tx"],["Color Ramp (browns)","cv"],["Principled BSDF","sh"]],
+ st:["Wave Texture: Rings, add Distortion 2–6 and Detail.","Stretch it along the grain with Mapping (Scale X 0.2).","Color Ramp from dark to light brown into Base Color; reuse the ramp output lightly in Roughness.","Bump node from the same texture at Strength 0.05–0.1."],
+ tip:"Rotate the mapping per board so neighboring planks don't line up."},
+/* RENDER SETTINGS */
+{id:"eevee",c:"Render settings",t:"EEVEE quick setup",sk:"light",tags:["EEVEE","fast","settings"],s:"Good defaults for EEVEE (4.2 and later).",
+ st:["Render Properties › Sampling: Render 64–128.","Raytracing: on, for accurate reflections and refraction.","Shadows: raise Resolution Limit for crisp shadows.","Bloom lives in the compositor now (Glare node)."],
+ tip:"EEVEE is ideal for toon, stylized and quick lookdev. Switch to Cycles for glass, caustics and soft realism."},
+{id:"cycles",c:"Render settings",t:"Cycles quick setup",sk:"light",tags:["Cycles","realistic","settings"],s:"Clean renders without waiting all night.",
+ st:["Preferences › System: choose your GPU (OptiX for NVIDIA, HIP for AMD), then Render › Device: GPU Compute.","Sampling › Render: Noise Threshold 0.01–0.03, Max Samples 256–1024, Denoise on (OpenImageDenoise).","Light Paths: lower total bounces (e.g., 6) for speed if you don't need deep glass.","Use Fast GI Approximation for quick previews."],
+ tip:"Render a small border region (Ctrl+B in camera view) to test settings fast."},
+{id:"color",c:"Render settings",t:"Color management",sk:"light",tags:["AgX","Standard","color"],s:"Which View Transform to use for each style.",
+ st:["AgX (default): natural highlights. Use for realistic and most 3D work.","Standard: colors render exactly as picked. Use for toon, flat, pixel and UI‑matched colors.","Filmic: the older default; similar to AgX but shifts saturated colors.","Look: adds contrast presets. Exposure and Gamma for quick global tweaks."],
+ tip:"If your toon colors look washed out, you're on AgX. Switch to Standard."},
+{id:"transparent",c:"Render settings",t:"Transparent PNG",sk:"light",tags:["export","portfolio","png"],s:"Render the object with no background.",
+ st:["Render Properties › Film › Transparent: on.","Output Properties › File Format: PNG, Color: RGBA.","Shadow on transparent: Cycles Shadow Catcher on a ground plane."],
+ tip:"Great for portfolio sheets and dropping renders onto a colored layout."},
+{id:"turntable",c:"Render settings",t:"Turntable animation",sk:"light",tags:["animation","portfolio","turntable"],s:"A 360° spin for showing a model.",
+ st:["Add an Empty at the model's center; parent the camera to it (select camera, then Empty, Ctrl+P › Object).","Frame 1: Empty Rotation Z 0°, keyframe (I). Last frame (e.g., 120): Z 360°, keyframe.","Graph Editor: select all keys, T › Linear so speed is constant.","Set End frame one less than the 360° frame to avoid a stutter on loop."],
+ tip:"Export as MP4: Output › FFmpeg Video, H.264."},
+/* CAMERA */
+{id:"focal",c:"Camera",t:"Focal length cheat sheet",sk:"light",tags:["camera","composition"],s:"Pick the lens for the shot.",
+ st:["18–28 mm: environments, dramatic perspective, exaggerated scale.","35–50 mm: natural, close to how we see.","85–135 mm: products and characters, flattering, little distortion.","Orthographic: isometric, technical and sprite renders."],
+ tip:"Longer lenses need the camera farther away. Use Lock Camera to View to frame naturally."},
+{id:"dof",c:"Camera",t:"Depth of field",sk:"light",tags:["camera","blur","miniature"],s:"Background blur that guides the eye.",
+ st:["Camera Properties › Depth of Field: on.","Focus Object: an Empty placed on the subject (easier than distance).","F‑Stop: 1.4–2.8 for strong blur, 4–8 for subtle. Blur depends on scene scale.","Very low F‑Stop on a small‑looking scene fakes a miniature (tilt‑shift) look."],
+ tip:"Only blur what you don't want looked at."},
+{id:"frame",c:"Camera",t:"Framing and composition",sk:"form",tags:["camera","composition"],s:"Quick tools for better framing.",
+ st:["Camera Properties › Viewport Display › Composition Guides: Thirds, Golden, Center.","N panel › View › Lock Camera to View, then navigate to frame the shot.","Ctrl+Alt+Numpad 0: snap the camera to the current view.","Leave space in front of a subject facing sideways."],
+ tip:"Check the silhouette: switch to Solid shading with a flat light. If it reads as a black shape, the shot works."},
+/* MODIFIERS */
+{id:"bevel",c:"Modifiers",t:"Bevel that looks right",sk:"mods",tags:["bevel","hard-surface","shading"],s:"Soft edges that catch light, without shading artifacts.",
+ n:[["Apply Scale","op"],["Bevel modifier","md"],["Weighted Normal","md"]],
+ st:["Apply scale first: Ctrl+A › Scale.","Bevel: Amount small (≈1–3% of object size), Segments 2–3, Limit Method: Angle (30°).","Shading › Harden Normals on, and right‑click › Shade Auto Smooth on the object.","Add Weighted Normal after Bevel for flat faces that stay flat."],
+ tip:"No bevel = CG look. Even a tiny bevel makes a hard‑surface model read as real."},
+{id:"mirror",c:"Modifiers",t:"Mirror",sk:"mods",tags:["symmetry","modeling"],s:"Model half, get the whole.",
+ st:["Delete half the mesh across the origin, then add Mirror.","Enable Clipping so center vertices can't cross the mirror line.","Bisect cuts the mesh at the axis automatically; Flip chooses which side is kept.","Mirror Object: mirror across an Empty instead of the object's own origin."],
+ tip:"Keep Mirror first in the stack, before Bevel and Subdivision."},
+{id:"array",c:"Modifiers",t:"Array (linear and radial)",sk:"mods",tags:["array","repeat","radial"],s:"Repeat parts in a line or a circle.",
+ st:["Linear: Relative Offset sets spacing as a multiple of the object's size.","Radial: enable Object Offset with an Empty at the center; rotate the Empty 360° ÷ count on Z, and turn off Relative Offset.","Merge welds touching copies into one mesh.","Combine with Curve modifier to follow a path (chains, fences)."],
+ tip:"Put the object's origin at the radial center for predictable results."},
+{id:"subd",c:"Modifiers",t:"Subdivision surface",sk:"topo",tags:["subd","smooth","topology"],s:"Smooth, high‑detail surfaces from simple quads.",
+ st:["Levels Viewport 1–2, Render 2–3.","Control sharpness with support loops (Ctrl+R near edges) or Edge Crease (Shift+E).","Quads only on curved areas; triangles and n‑gons cause pinching.","Check with Wireframe overlay that loops flow around the form."],
+ tip:"Fewer, well‑placed edge loops always beat more geometry."},
+{id:"boolean",c:"Modifiers",t:"Boolean cutting",sk:"mods",tags:["hard-surface","boolean","sci-fi"],s:"Cut panels, holes and vents.",
+ st:["Add Boolean: Difference with a cutter object; Solver: Exact.","Set cutters to Display As: Wire and hide them in renders.","Add Bevel after the Boolean (with Harden Normals) for clean cut edges.","Apply and clean up only when finished; keep it non‑destructive while iterating."],
+ tip:"Shading artifacts near cuts? Add Weighted Normal or more support geometry."},
+{id:"solidify",c:"Modifiers",t:"Solidify and Screw",sk:"mods",tags:["thickness","lathe","modeling"],s:"Give planes thickness; spin profiles into round objects.",
+ st:["Solidify: Thickness for walls, cloth, glass, shells. Even Thickness keeps it uniform.","Screw: draw half a profile (vase, cup, bottle) as vertices, add Screw with 360° and 32 steps around the Z axis.","Enable Merge in Screw so the center closes cleanly."],
+ tip:"Screw plus Solidify plus Subdivision is the fastest route to any vase, glass or bottle."},
+/* UV & TOPOLOGY */
+{id:"uv",c:"UV & topology",t:"UV unwrap basics",sk:"uv",tags:["uv","texture","seams"],s:"Seams, unwrap, check, pack.",
+ st:["Edit Mode: select edges › Ctrl+E › Mark Seam, along hidden places (back, underside).","Select all, U › Unwrap.","Check with a UV Grid image: Image Editor › New › Generated Type: UV Grid, applied in the material.","UV › Pack Islands (Margin 0.005–0.01). Quick option for props: U › Smart UV Project."],
+ tip:"Squares in the checker should be similar sizes everywhere (even texel density)."},
+{id:"topo",c:"UV & topology",t:"Clean topology rules",sk:"topo",tags:["topology","quads","subd"],s:"Habits that keep meshes easy to edit and smooth.",
+ st:["Quads on anything that will be subdivided or deformed.","Keep poles (5+ edges meeting) on flat areas, away from curves.","Edge loops should follow the form and frame features like eyes, panels and holes.","Delete hidden faces no one will see. Mesh › Clean Up › Merge by Distance to remove duplicates."],
+ tip:"Toggle face orientation in Overlays: red faces mean flipped normals (Shift+N to recalculate)."},
+/* SHORTCUTS */
+{id:"keys-model",c:"Shortcuts",t:"Modeling shortcuts",sk:"form",tags:["keys","edit mode"],s:"The ones you use constantly.",
+ st:["<kbd>G</kbd> <kbd>R</kbd> <kbd>S</kbd> move, rotate, scale; add <kbd>X</kbd> <kbd>Y</kbd> <kbd>Z</kbd> to lock an axis.","<kbd>E</kbd> extrude · <kbd>I</kbd> inset · <kbd>Ctrl</kbd>+<kbd>R</kbd> loop cut · <kbd>Ctrl</kbd>+<kbd>B</kbd> bevel · <kbd>K</kbd> knife.","<kbd>Alt</kbd>+click edge loop select · <kbd>L</kbd> select linked · <kbd>Ctrl</kbd>+<kbd>+</kbd> grow selection.","<kbd>M</kbd> merge · <kbd>P</kbd> separate · <kbd>Ctrl</kbd>+<kbd>J</kbd> join · <kbd>F</kbd> fill face."],
+ tip:"Press a number while transforming to type exact values: G Z 0.5 Enter."},
+{id:"keys-scene",c:"Shortcuts",t:"Scene and view shortcuts",sk:"light",tags:["keys","navigation","render"],s:"Getting around and rendering.",
+ st:["<kbd>Numpad 1</kbd> front · <kbd>3</kbd> right · <kbd>7</kbd> top · <kbd>0</kbd> camera · <kbd>5</kbd> ortho toggle.","<kbd>/</kbd> local view (isolate) · <kbd>H</kbd> hide · <kbd>Alt</kbd>+<kbd>H</kbd> unhide · <kbd>.</kbd> on numpad: frame selected.","<kbd>Shift</kbd>+<kbd>A</kbd> add · <kbd>Shift</kbd>+<kbd>D</kbd> duplicate · <kbd>Alt</kbd>+<kbd>D</kbd> linked duplicate · <kbd>Shift</kbd>+<kbd>S</kbd> snap menu.","<kbd>Z</kbd> shading pie · <kbd>F12</kbd> render · <kbd>Ctrl</kbd>+<kbd>A</kbd> apply transforms."],
+ tip:"No numpad? Preferences › Input › Emulate Numpad, then use the number row."},
+/* COMPOSITOR */
+{id:"comp",c:"Compositor",t:"Compositor basics",sk:"light",tags:["compositor","post","setup"],s:"Post‑processing your render inside Blender.",
+ n:[["Render Layers","in"],["your effect nodes","cv"],["Group Output / Composite","out"],["Viewer","out"]],
+ st:["Open the Compositing workspace.","Create the node tree: in 5.x click New in the editor header (trees are reusable data‑blocks); in 4.x tick Use Nodes.","Render Layers carries the render in. Connect your final node to the tree's output (Group Output in 5.x, Composite in 4.x).","Preview any node: Ctrl+Shift+click it to wire a Viewer.","See it live in the 3D view: Viewport Shading popover › Compositor: Always."],
+ tip:"Blender 5.0 added an asset shelf of ready‑made compositor node groups. Try those before building effects from scratch."},
+{id:"bloom",c:"Compositor",t:"Bloom & glare",sk:"light",tags:["bloom","glow","glare","neon","compositor"],s:"Halos around bright areas. This replaced EEVEE's Bloom checkbox in 4.2.",
+ n:[["Render Layers","in"],["Glare","cv"],["Group Output / Composite","out"]],
+ st:["Add a Glare node after Render Layers.","Type: Bloom (soft, modern), Fog Glow (wide haze), Streaks (star rays), Ghosts (lens flare dots), Simple Star.","Threshold: lower it to make more of the image glow. Raise Strength/Mix for intensity.","Pair with Emission materials (Materials › Emission) for neon, magic and screens."],
+ tip:"Too much bloom flattens the image. Keep the threshold above 1 so only truly bright pixels glow."},
+{id:"grade",c:"Compositor",t:"Color grading",sk:"light",tags:["color","grading","mood","compositor"],s:"Shift mood and contrast after rendering.",
+ n:[["Exposure","co"],["Color Balance","co"],["RGB Curves","co"],["Hue/Saturation/Value","co"]],
+ st:["Exposure first to set overall brightness.","Color Balance: Lift (shadows), Gamma (mids), Gain (highlights). Push shadows cool and highlights warm for a filmic look.","RGB Curves: a gentle S‑curve on Combined for contrast.","Hue/Saturation/Value for a final saturation tweak."],
+ tip:"Grade with the Viewer and a reference image open side by side."},
+{id:"vignette",c:"Compositor",t:"Vignette",sk:"light",tags:["vignette","framing","compositor"],s:"Darkened edges that pull the eye to the center.",
+ n:[["Ellipse Mask","in"],["Blur","cv"],["Mix · Multiply","co"]],
+ st:["Add an Ellipse Mask sized to the frame (width and height around 0.8).","Blur it heavily (size 150–300 px, relative to resolution).","Mix (Multiply) the blurred mask over the image at factor 0.3–0.6."],
+ tip:"A vignette should be noticed only when it's turned off."},
+{id:"lens",c:"Compositor",t:"Lens effects",sk:"light",tags:["lens","chromatic aberration","sun beams","compositor"],s:"Chromatic aberration, distortion and light shafts.",
+ n:[["Lens Distortion","vec"],["Sun Beams","cv"]],
+ st:["Lens Distortion: Dispersion 0.01–0.03 adds chromatic aberration at the edges; Distortion bends the image like a real lens.","Sun Beams: place the source point over a bright light for streaks of light.","Keep it subtle: these are seasoning, not the meal."],
+ tip:"Chromatic aberration plus slight grain (a Noise texture mix) makes renders feel photographed."},
+{id:"passes",c:"Compositor",t:"Render passes and mist",sk:"light",tags:["passes","mist","depth","fog","compositor"],s:"Extra images from the render you can use as masks.",
+ n:[["Render Layers · Mist","in"],["Color Ramp","cv"],["Mix (fog color)","co"]],
+ st:["View Layer Properties › Passes: enable Mist, Ambient Occlusion, Z, Normal or Cryptomatte as needed.","Mist: set range in World Properties › Mist Pass (Start, Depth).","Mist → Color Ramp → Mix factor between the image and a fog color for atmospheric depth.","AO pass multiplied in adds contact shadows to stylized renders."],
+ tip:"Passes cost little render time and save re‑rendering when you change the look."},
+{id:"crypto",c:"Compositor",t:"Cryptomatte masks",sk:"light",tags:["cryptomatte","mask","selection","compositor"],s:"Adjust one object or material without re‑rendering.",
+ n:[["Cryptomatte","in"],["Mix (factor = Matte)","co"]],
+ st:["View Layer › Passes › Cryptomatte: enable Object and/or Material.","Add a Cryptomatte node, set its source to Render, and pick objects with the eyedropper.","Use its Matte output as the factor to grade, blur or recolor just that object."],
+ tip:"Great for tweaking one prop's color in a diorama without touching the rest."},
+{id:"npost",c:"Compositor",t:"Stylized post effects",sk:"light",tags:["painterly","toon","pixel","NPR","compositor"],s:"Painterly, banded and pixel looks in post.",
+ n:[["Kuwahara","cv"],["Posterize","co"],["Filter · Sobel","cv"],["Pixelate","cv"]],
+ st:["Kuwahara: smooths details into paint‑like strokes (Anisotropic for a brushier look).","Posterize: reduces color steps for flat, toon‑like bands.","Filter › Sobel or Laplace extracts edges; Mix (Multiply) them back as outlines.","Pixelate: chunky pixels for a retro look (set size per pixel)."],
+ tip:"Kuwahara on a toon render is a quick way to get a painted‑illustration look."},
+{id:"alpha",c:"Compositor",t:"Backgrounds and Alpha Over",sk:"light",tags:["background","alpha","compositor","portfolio"],s:"Put your render over a color, gradient or photo.",
+ n:[["Image / RGB","in"],["Alpha Over","co"]],
+ st:["Render › Film › Transparent: on.","Alpha Over: background into the top input, render into the bottom input.","For a gradient background, feed a Texture or Ellipse Mask → Color Ramp into the background."],
+ tip:"Shadows need a Shadow Catcher (Cycles) to survive on transparent renders."},
+/* MODIFIER INDEX */
+{id:"mx-edit",c:"Modifier index",t:"Edit modifiers",sk:"mods",tags:["modifiers","index","data"],s:"Change data on a mesh: UVs, vertex weights, cached animation.",
+ ref:["Data Transfer::Copies normals, UVs, vertex groups or colors from another mesh.","Mesh Cache::Plays back vertex animation from an MDD or PC2 file.","Mesh Sequence Cache::Streams animated geometry from Alembic or USD files.","UV Project::Projects UVs from up to ten projector objects, like a slide projector.","UV Warp::Moves, rotates or scales UVs, driven by objects or values.","Vertex Weight Edit::Remaps or thresholds a vertex group's weights.","Vertex Weight Mix::Combines two vertex groups (add, subtract, multiply…).","Vertex Weight Proximity::Sets weights by distance to another object."]},
+{id:"mx-gen",c:"Modifier index",t:"Generate modifiers",sk:"mods",tags:["modifiers","index","modeling"],s:"Add or rebuild geometry. Most modeling happens here.",
+ ref:["Array::Repeats geometry in a line, circle or along a curve, with viewport gizmos (Geometry Nodes based, 5.0+).","Array (Legacy)::The classic offset‑based array: relative, constant or object offset.","Bevel::Rounds or chamfers edges and vertices.","Boolean::Cuts, joins or intersects with another object (Difference, Union, Intersect).","Build::Reveals or hides faces one by one over time.","Curve to Tube::Turns curves into tube meshes with UVs and optional rounded caps (5.0+).","Decimate::Reduces polygon count (Collapse, Un‑Subdivide, Planar).","Edge Split::Splits edges for sharp shading on flat-shaded parts.","Mask::Shows only a vertex group or the vertices of selected bones.","Mesh to Volume::Converts a mesh into a volume (fog/smoke shape).","Mirror::Mirrors across X, Y or Z, with clipping and bisect.","Multiresolution::Subdivision levels for sculpting fine detail.","Remesh::Rebuilds the surface as an even voxel or quad mesh.","Scatter on Surface::Distributes instances across a surface (5.0+).","Screw::Spins a profile around an axis (lathe), optionally with a screw offset.","Skin::Builds a thick mesh around a vertex/edge skeleton.","Solidify::Adds thickness to surfaces.","Subdivision Surface::Smooths and subdivides (Catmull‑Clark or Simple).","Triangulate::Converts faces to triangles (useful before export).","Volume to Mesh::Converts a volume back into a mesh surface.","Weld::Merges vertices within a distance.","Wireframe::Turns every edge into a thick wire strut."]},
+{id:"mx-def",c:"Modifier index",t:"Deform modifiers",sk:"mods",tags:["modifiers","index","deform","animation"],s:"Move existing vertices without adding geometry.",
+ ref:["Armature::Deforms the mesh with a skeleton for rigging.","Cast::Pushes the shape toward a sphere, cylinder or cube.","Curve::Bends the mesh along a curve object.","Displace::Moves vertices by a texture (height detail, terrain).","Hook::Pulls selected vertices with an empty or object.","Laplacian Deform::Deforms with anchors while keeping surface detail.","Lattice::Deforms with a lattice cage (smooth bulk shaping).","Mesh Deform::Deforms with any closed mesh as a cage.","Shrinkwrap::Snaps the mesh onto another surface.","Simple Deform::Twist, Bend, Taper or Stretch along an axis.","Smooth::Averages vertex positions to soften shape.","Smooth Corrective::Fixes ugly creases from deformation, using the rest shape.","Smooth Laplacian::Smooths noise while preserving overall shape.","Surface Deform::Binds to another surface and follows it (clothing on bodies).","Volume Displace::Displaces a volume by a texture.","Warp::Pulls part of the mesh from one point to another.","Wave::Animated ripples across the surface."]},
+{id:"mx-norm",c:"Modifier index",t:"Normals modifiers",sk:"mods",tags:["modifiers","index","shading","normals"],s:"Control shading without changing shape.",
+ ref:["Normal Edit::Points normals toward a target or radially (foliage, stylized shading).","Weighted Normal::Weights normals by face size so big flat faces shade flat.","Smooth by Angle::Smooth shading with sharp edges past an angle. Replaced the old Auto Smooth in 4.1."]},
+{id:"mx-phys",c:"Modifier index",t:"Physics modifiers",sk:"mods",tags:["modifiers","index","physics","simulation"],s:"Added for you by the Physics tab.",
+ ref:["Cloth::Fabric simulation.","Collision::Lets the object collide with cloth, soft bodies and particles.","Dynamic Paint::Paints wetness, waves or color when objects touch.","Explode::Breaks the mesh apart following particles.","Fluid::Liquid, smoke and fire simulation (domain, flow, effector).","Ocean::Generates an animated ocean surface.","Particle Instance::Places mesh copies on particles.","Particle System::Emitter or hair particles.","Soft Body::Jiggly, squishy simulation."]},
+{id:"mx-gn",c:"Modifier index",t:"Geometry Nodes modifiers",sk:"mods",tags:["modifiers","index","geometry nodes","procedural"],s:"Node‑based modifiers, including the ones bundled since 5.0.",
+ ref:["Geometry Nodes::Runs any Geometry Nodes tree as a modifier.","Instance on Elements::Places copies on the points, edges or faces of a mesh (5.0+).","Randomize Instances::Varies position, rotation and scale of instances (5.0+).","Geometry Input::Swaps in another object's geometry (5.0+).","Hair modifiers::For hair curves objects: Add Modifier › Hair (Clump, Curl, Frizz, Interpolate and more)."]},
+/* SHADER NODE INDEX */
+{id:"sx-in",c:"Shader node index",t:"Input nodes",sk:"mat",tags:["shader","nodes","index","input"],s:"Information about the surface, scene and view.",
+ ref:["Ambient Occlusion::How hidden a point is; darkens crevices.","Attribute::Reads a named attribute (from Geometry Nodes, vertex groups…).","Bevel::Fake rounded edges at render time (Cycles).","Camera Data::Distance and direction to the camera.","Color Attribute::Vertex colors.","Curves Info::Data for hair curves (strand position, thickness).","Fresnel::Reflection amount by viewing angle, using IOR.","Geometry::Position, normal, backfacing, pointiness (Cycles) and more.","Layer Weight::Facing and Fresnel masks for rims and edges.","Light Path::Which kind of ray is shading (camera, shadow, reflection…).","Object Info::Per‑object random value, color, location.","Particle Info::Age, index and velocity of particles.","Point Info::Data for point cloud objects.","Raycast::Traces a ray and reports what it hits (EEVEE, 5.1+).","RGB::A constant color.","Tangent::Tangent direction for anisotropic effects.","Texture Coordinate::Generated, UV, Object, Window and other coordinates.","UV Map::Picks a specific UV map.","Value::A constant number.","Volume Info::Density, color and temperature of volumes.","Wireframe::Mask along mesh edges."]},
+{id:"sx-out",c:"Shader node index",t:"Output nodes",sk:"mat",tags:["shader","nodes","index","output"],s:"Where node trees end.",
+ ref:["Material Output::Final Surface, Volume and Displacement of a material.","World Output::Final output of the World shader.","Light Output::Final output of a light's node tree (Cycles).","AOV Output::Writes a custom render pass for the compositor."]},
+{id:"sx-sh",c:"Shader node index",t:"Shader nodes",sk:"mat",tags:["shader","nodes","index","bsdf"],s:"Surface and volume behaviors.",
+ ref:["Principled BSDF::The all‑in‑one physically based surface. Start here.","Diffuse BSDF::Matte surface (base for toon shaders).","Emission::Gives off light.","Glass BSDF::Reflection plus refraction.","Glossy BSDF::Mirror‑like or blurry reflection, with anisotropy.","Metallic BSDF::Dedicated metal with artist or physical colors, thin film (5.0+).","Refraction BSDF::Refraction only.","Translucent BSDF::Light passing through thin surfaces (leaves, paper).","Transparent BSDF::Fully see‑through without refraction.","Sheen BSDF::Fabric fuzz and velvet.","Subsurface Scattering::Light soaking into skin, wax, marble.","Toon BSDF::Banded diffuse/glossy (Cycles).","Hair BSDF / Principled Hair BSDF::Hair and fur shading.","Holdout::Cuts a transparent hole in the render.","Ray Portal BSDF::Sends rays elsewhere in the scene (Cycles, 4.2+).","Specular BSDF::Specular workflow material (EEVEE).","Add Shader / Mix Shader::Combine two shaders by adding or blending.","Principled Volume::All‑in‑one smoke, fire and fog.","Volume Absorption / Volume Scatter::Tinted or light‑scattering volumes (fog, colored liquids)."]},
+{id:"sx-disp",c:"Shader node index",t:"Displacement nodes",sk:"mat",tags:["shader","nodes","index","bump","normal map"],s:"Surface detail without (or with) extra geometry.",
+ ref:["Bump::Fake height detail from a grayscale texture.","Normal Map::Applies a tangent or object normal map image.","Displacement::Real height displacement (needs Displacement method set in material settings).","Vector Displacement::Displaces in any direction from a vector map (overhangs)."]},
+{id:"sx-col",c:"Shader node index",t:"Color nodes",sk:"mat",tags:["shader","nodes","index","color"],s:"Adjust and blend colors.",
+ ref:["Brightness/Contrast::Simple brightness and contrast.","Gamma::Gamma curve on a color.","Hue/Saturation/Value::Shift hue, saturation and brightness.","Invert Color::Negative colors.","Light Falloff::Controls how light fades with distance (Cycles).","Mix Color::Blend two colors (Mix, Multiply, Screen, Overlay…).","RGB Curves::Curve‑based color correction."]},
+{id:"sx-tex",c:"Shader node index",t:"Texture nodes",sk:"mat",tags:["shader","nodes","index","texture","procedural"],s:"Images and procedural patterns.",
+ ref:["Image Texture::Uses an image file.","Environment Texture::HDRI or panorama for the World.","Sky Texture::Physical sky with a sun.","Noise Texture::Organic noise, with fBM/ridged modes (Musgrave merged in 4.1).","Voronoi Texture::Cells, scales, cracks and stones.","Wave Texture::Bands and rings (wood, stripes).","Gradient Texture::Linear, radial, spherical gradients.","Magic Texture::Psychedelic swirls.","Brick Texture::Brick walls and tiles.","Checker Texture::Checkerboard.","Gabor Texture::Directional noise for brushed metal and grain (4.3+).","White Noise Texture::Random value per position or cell.","Point Density::Density from particles or vertices (Cycles).","IES Texture::Real‑world light distribution profiles (Cycles)."]},
+{id:"sx-util",c:"Shader node index",t:"Utility nodes",sk:"mat",tags:["shader","nodes","index","math","converter"],s:"Math and conversion. Formerly the Converter menu.",
+ ref:["Color Ramp::Remaps values to colors (toon bands, masks).","Map Range::Remaps a value from one range to another.","Math::Add, multiply, power, compare and more on numbers.","Vector Math::The same for vectors (dot, cross, normalize…).","Mix::Blends floats or vectors (Mix Color covers colors).","Clamp::Limits a value between min and max.","Float Curve::Remaps a value through a curve.","Combine / Separate Color::Builds or splits RGB, HSV or HSL.","Combine / Separate XYZ::Builds or splits vectors.","RGB to BW::Color to grayscale.","Shader to RGB::Turns lighting into a color (EEVEE). The heart of toon shaders.","Blackbody::Color from a temperature in Kelvin.","Wavelength::Color from a light wavelength.","Closure and Bundle nodes::Pass shaders and grouped values around node trees (5.x)."]},
+{id:"sx-vec",c:"Shader node index",t:"Vector, script and layout nodes",sk:"mat",tags:["shader","nodes","index","vector","mapping"],s:"Move and rotate coordinates; organize big trees.",
+ ref:["Mapping::Moves, rotates and scales texture coordinates.","Normal::A fixed direction and dot product.","Vector Curves::Curve remapping per vector axis.","Vector Rotate::Rotates vectors around an axis or point.","Vector Transform::Converts between world, object and camera space.","Script::Runs custom OSL shaders (Cycles, CPU and OptiX).","Group::Packs nodes into a reusable node group (Ctrl+G).","Frame::A labeled box around nodes.","Reroute::A dot to tidy up wires (Shift+right‑drag a wire)."]},
+/* COMPOSITOR NODE INDEX */
+{id:"cx-io",c:"Compositor node index",t:"Input and output",sk:"light",tags:["compositor","nodes","index"],s:"What comes in and where it goes.",
+ ref:["Render Layers::The rendered image and its passes.","Image / Movie Clip::Brings in an image or video.","Mask::A mask drawn in the Mask editor.","RGB / Value::Constant color or number.","Bokeh Image::Custom bokeh shape for Bokeh Blur.","Scene Time::Current frame and seconds, for animated effects.","Group Output / Composite::The final image (Group Output in 5.x, Composite in 4.x).","Viewer::Preview a point in the tree (Ctrl+Shift+click a node).","File Output::Saves images or passes to disk."]},
+{id:"cx-col",c:"Compositor node index",t:"Color",sk:"light",tags:["compositor","nodes","index","color"],s:"Grade, correct and combine.",
+ ref:["Alpha Over::Layers one image over another using alpha.","Brightness/Contrast::Quick brightness and contrast.","Color Balance::Lift/Gamma/Gain or Offset/Power/Slope grading.","Color Correction::Per‑range (shadows, mids, highlights) saturation, contrast, gain.","Exposure::Brightness in photographic stops.","Gamma::Gamma curve.","Hue Correct::Curves for hue, saturation and value by hue.","Hue/Saturation/Value::Shift hue, saturation and brightness.","Invert Color::Negative image.","Mix::Blends two images (Multiply, Screen, Overlay…).","Posterize::Reduces color steps.","RGB Curves::Curve color correction.","Tone Map::Compresses high dynamic range into displayable range.","Z Combine::Combines two images by depth."]},
+{id:"cx-filt",c:"Compositor node index",t:"Filter",sk:"light",tags:["compositor","nodes","index","blur","glare"],s:"Blur, glow, sharpen and stylize.",
+ ref:["Blur::Gaussian and other blur types.","Bilateral Blur::Blurs while keeping edges.","Bokeh Blur::Lens‑shaped blur.","Defocus::Depth‑of‑field from a Z pass.","Directional Blur::Motion‑streak blur in one direction.","Vector Blur::Motion blur from the Vector pass.","Glare::Bloom, Fog Glow, Streaks, Ghosts, Simple Star.","Sun Beams::Light shafts from a point.","Denoise::Cleans render noise (best with denoising passes).","Despeckle::Removes isolated bright pixels.","Dilate/Erode::Grows or shrinks masks.","Filter::Sharpen, Soften, Sobel, Laplace and other kernels.","Kuwahara::Painterly smoothing.","Pixelate::Chunky pixels.","Anti‑Aliasing::Smooths jagged mask edges.","Inpaint::Fills holes from surrounding pixels.","Convolve::Applies a custom image kernel (5.0+)."]},
+{id:"cx-mask",c:"Compositor node index",t:"Mask, keying and utilities",sk:"light",tags:["compositor","nodes","index","mask","keying"],s:"Isolate parts of the image and do math on it.",
+ ref:["Box Mask / Ellipse Mask::Simple shape masks (vignettes, spot grades).","Cryptomatte::Masks by object or material picked with an eyedropper.","ID Mask::Masks by Object or Material Index pass.","Double Edge Mask::Soft gradient between two mask edges.","Mask to SDF::Distance from mask edges for glows and erosion (5.1+).","Keying / Chroma Key / Color Key / Luminance Key::Remove green screen or a color/brightness range.","Color Spill::Removes green or blue spill after keying.","Math / Map Range / Clamp::Number operations on images.","Color Ramp::Remap values to colors (great on Mist and AO passes).","Separate / Combine Color::Split or join channels.","Switch::Toggle between two inputs.","Levels::Image statistics (mean, deviation).","Normalize::Rescales values into 0–1 (useful on Z)."]},
+{id:"cx-xf",c:"Compositor node index",t:"Transform",sk:"light",tags:["compositor","nodes","index","transform","lens"],s:"Move, crop and distort.",
+ ref:["Translate / Rotate / Scale / Transform::Move, rotate and resize the image.","Crop::Cuts to a region.","Flip::Mirrors horizontally or vertically.","Lens Distortion::Barrel distortion and chromatic aberration (Dispersion).","Corner Pin::Pins an image into four corners (screens, posters).","Map UV::Re‑textures using a UV pass.","Displace::Shifts pixels by a vector or image.","Stabilize 2D / Movie Distortion / Plane Track Deform::Motion‑tracking tools."]}
+];
+const GSTYLE={"toon‑shaded":["toon","hull","anime"],"clay‑render":["clay"],"chunky low‑poly":["lowpoly"],"semi‑realistic":["realistic","hdri"],"hard‑surface":["bevel","boolean"],"stylized":["stylized"]};
+const GFORMAT={diorama:["iso","dof"],variant:["wear"],kitbash:["boolean"],speed:["keys-model"]};
+const GTHEME={cyber:["neon","bloom"],scifi:["emission","bloom"],haunt:["lowkey"],steam:["metal","wear"],apoc:["wear"],ocean:["sss"],deco:["metal"],candy:["sss"],medi:["wood"],cozy:["wood"],pirate:["wood"],arctic:["golden"],desert:["golden"],toy:["product"],retro:["neon"]};
+const GFOCUS={"Three‑point lighting setup":["3point"],"HDRI lighting and a camera with depth of field":["hdri","dof"],"Light and render a turntable animation":["turntable"],"Smart UV Project and a checker texture":["uv"],"UV unwrap with marked seams":["uv"],"UV unwrap and texture‑paint one detail":["uv"],"Procedural material in the Shader Editor":["wood","stylized"],"Layered procedural material with edge wear":["wear"],"Bevel modifier on the hard edges":["bevel"],"Subdivision‑ready all‑quad mesh":["subd","topo"],"Quad topology with clean edge flow":["topo"],"Sculpt surface wear, then retopologize":["topo"],"Smooth shading without artifacts":["bevel"],"Non‑destructive stack: Mirror, Bevel, Array, Solidify":["mirror","array","solidify"],"Geometry Nodes for one repeated detail":["array"]};
+function relatedGuides(p){const ids=[...(GFOCUS[p.focus]||[]),...(GSTYLE[p.style]||[]),...(GTHEME[p.theme]||[]),...(GFORMAT[p.format]||[])];
+  if(!ids.length)GUIDES.filter(g=>g.sk===p.skill).slice(0,2).forEach(g=>ids.push(g.id));
+  return [...new Set(ids)].map(id=>GUIDES.find(g=>g.id===id)).filter(Boolean).slice(0,4)}
+
+/* ================= HELPERS ================= */
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const art=w=>/^[aeiou]/i.test(w)?"an":"a";
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+const fmtSize=h=>h<1?`${Math.round(h*100)} cm`:`${h} m`;
+const fmtDate=t=>new Date(t).toLocaleDateString(undefined,{month:"short",day:"numeric"});
+const dayKey=t=>{const d=new Date(t);return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`};
+function lsGet(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}}
+function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){return false}}
+function toast(m){const t=$("toast");t.textContent=m;t.hidden=false;clearTimeout(toast.h);toast.h=setTimeout(()=>t.hidden=true,2400)}
+
+/* ================= DRAWING ================= */
+let clipN=0;
+function geom(s){
+  if(s.t==="rect")return{tag:"rect",a:`x="${s.x}" y="${s.y}" width="${s.w}" height="${s.h}" rx="${s.r||0}"`,bb:[s.x,s.y,s.x+s.w,s.y+s.h]};
+  if(s.t==="ell")return{tag:"ellipse",a:`cx="${s.x}" cy="${s.y}" rx="${s.rx}" ry="${s.ry}"`,bb:[s.x-s.rx,s.y-s.ry,s.x+s.rx,s.y+s.ry]};
+  if(s.t==="poly"||s.t==="line"){const xs=s.pts.map(p=>p[0]),ys=s.pts.map(p=>p[1]);
+    return{tag:s.t==="poly"?"polygon":"polyline",a:`points="${s.pts.map(p=>p.join(",")).join(" ")}"`,bb:[Math.min(...xs),Math.min(...ys),Math.max(...xs),Math.max(...ys)]}}
+  if(s.t==="arc"){const pt=a=>[s.x+s.rx*Math.cos(a),s.y+s.ry*Math.sin(a)];const p0=pt(s.a0),p1=pt(s.a1);
+    const large=(s.a1-s.a0)>PI?1:0;const closed=s.fill!==false;
+    const xs=[],ys=[];for(let i=0;i<=16;i++){const q=pt(s.a0+(s.a1-s.a0)*i/16);xs.push(q[0]);ys.push(q[1])}
+    return{tag:"path",a:`d="M${p0[0].toFixed(2)},${p0[1].toFixed(2)} A${s.rx},${s.ry} 0 ${large} 1 ${p1[0].toFixed(2)},${p1[1].toFixed(2)}${closed?" Z":""}"`,bb:[Math.min(...xs),Math.min(...ys),Math.max(...xs),Math.max(...ys)]}}
+}
+function drawingSVG(p,mode,withGrid){
+  const s=SUB[p.subject],pal=THEMES[p.theme].p;const INK="#141416";
+  let defs="",out="";
+  if(withGrid){
+    for(let i=0;i<=100;i+=10)out+=`<line x1="${i}" y1="0" x2="${i}" y2="100" stroke="#444446" stroke-width=".25"/><line x1="0" y1="${i}" x2="100" y2="${i}" stroke="#444446" stroke-width=".25"/>`;
+    out+=`<line x1="0" y1="92" x2="100" y2="92" stroke="#C9454F" stroke-width=".45" opacity=".8"/><line x1="50" y1="0" x2="50" y2="100" stroke="#4F7FD9" stroke-width=".45" opacity=".6"/>`;
+  }
+  out+=`<ellipse cx="50" cy="92" rx="34" ry="3.2" fill="#000" opacity=".22"/>`;
+  let U=[1e9,1e9,-1e9,-1e9];
+  s.parts.forEach(q=>{
+    const g=geom(q);const [x0,y0,x1,y1]=g.bb;U=[Math.min(U[0],x0),Math.min(U[1],y0),Math.max(U[2],x1),Math.max(U[3],y1)];
+    const cx=(x0+x1)/2,cy=(y0+y1)/2;
+    const tr=q.rot?` transform="rotate(${q.rot} ${q.ox??cx} ${q.oy??cy})"`:"";
+    const block=mode==="blockout";const pc=PRIM[q.p]||PRIM.cube;
+    const col=block?pc[1]:pal[q.c];
+    if(q.t==="line"||q.fill===false){
+      const w=q.t==="line"?q.w:(q.w||3);
+      if(!block&&q.t==="line"&&w>=2.4)out+=`<g${tr}><${g.tag} ${g.a} fill="none" stroke="${INK}" stroke-width="${w+1.2}" stroke-linecap="round" stroke-linejoin="round"/></g>`;
+      out+=`<g${tr}><${g.tag} ${g.a} fill="none" stroke="${col}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"${block&&q.t==="line"?' stroke-dasharray="2 1.4"':""}/></g>`;
+      return;
+    }
+    const op=q.op??1;const id="k"+(++clipN);
+    let inner=`<${g.tag} ${g.a} fill="${col}" opacity="${block?.92:op}"/>`;
+    if(!block&&op===1&&(x1-x0)>3){
+      defs+=`<clipPath id="${id}"><${g.tag} ${g.a}/></clipPath>`;
+      const w=x1-x0;
+      inner+=`<rect x="${(x0+w*.62).toFixed(2)}" y="${y0}" width="${(w*.38+.5).toFixed(2)}" height="${y1-y0}" fill="#000" opacity=".16" clip-path="url(#${id})"/>`;
+      inner+=`<rect x="${x0}" y="${y0}" width="${(w*.16).toFixed(2)}" height="${y1-y0}" fill="#fff" opacity=".13" clip-path="url(#${id})"/>`;
+    }
+    const sc=block&&q.p==="extrude"?"#D0D0D0":INK;
+    if(op===1||block)inner+=`<${g.tag} ${g.a} fill="none" stroke="${sc}" stroke-width=".8" stroke-linejoin="round"/>`;
+    out+=`<g${tr}>${inner}</g>`;
+  });
+  if(mode==="blockout"&&withGrid){
+    const vert=(U[3]-U[1])>=(U[2]-U[0]);const lbl=`≈ ${fmtSize(s.h)}`;
+    if(vert){const x=Math.min(97,U[2]+4);out+=`<g stroke="#fff" stroke-width=".35" opacity=".85"><line x1="${x}" y1="${U[1]}" x2="${x}" y2="${U[3]}"/><line x1="${x-1.5}" y1="${U[1]}" x2="${x+1.5}" y2="${U[1]}"/><line x1="${x-1.5}" y1="${U[3]}" x2="${x+1.5}" y2="${U[3]}"/></g><text x="${x-1}" y="${Math.max(4,U[1]-2)}" font-size="3.2" fill="#fff" text-anchor="end" font-family="JetBrains Mono,monospace">${lbl}</text>`}
+    else{const y=Math.min(97.5,U[3]+3.5);out+=`<g stroke="#fff" stroke-width=".35" opacity=".85"><line x1="${U[0]}" y1="${y}" x2="${U[2]}" y2="${y}"/><line x1="${U[0]}" y1="${y-1.5}" x2="${U[0]}" y2="${y+1.5}"/><line x1="${U[2]}" y1="${y-1.5}" x2="${U[2]}" y2="${y+1.5}"/></g><text x="${U[2]}" y="${y-1.4}" font-size="3.2" fill="#fff" text-anchor="end" font-family="JetBrains Mono,monospace">${lbl}</text>`}
+  }
+  return `<defs>${defs}</defs>${out}`;
+}
+
+/* ================= STATE ================= */
+let filters=lsGet("md-filters",{cat:"All",diff:"Any",weak:false});if(!MODES[filters.mode])filters.mode="themed";
+let recentRolls=lsGet("md-rolls",[]);
+let mix=lsGet("md-mix",{subjects:[],cats:[],themes:[]});
+let current=lsGet("md-current",null);
+let vpMode="shaded";
+const store={mode:"pending",db:null,uid:null,assets:null,completions:[],profile:{assessments:[]},weekly:null,loaded:false};
+
+/* ================= GENERATION ================= */
+function weightedFormat(list){const tot=list.reduce((a,f)=>a+f.w,0);let r=Math.random()*tot;for(const f of list){r-=f.w;if(r<=0)return f}return list[0]}
+function pickTheme(s,fitOnly){
+  let ok=Object.keys(THEMES).filter(k=>k!=="classic"&&(!fitOnly||themeFits(k,s)));
+  let tc=ok.filter(k=>!mix.themes.includes(k));if(!tc.length)tc=ok;return tc.length?pick(tc):"classic";
+}
+function makePrompt(){
+  let pool=SUBJECTS.filter(s=>filters.cat==="All"||s.cat===filters.cat);
+  let cand=pool.filter(s=>!mix.subjects.includes(s.id)&&(filters.cat!=="All"||!mix.cats.slice(0,2).includes(s.cat)));
+  if(!cand.length)cand=pool.filter(s=>!mix.subjects.slice(0,Math.ceil(pool.length*.6)).includes(s.id));
+  if(!cand.length)cand=pool.filter(s=>s.id!==current?.subject);
+  if(!cand.length)cand=pool;
+  const s=pick(cand);const mode=filters.mode;
+  let theme="classic",style="",twist="",fmts=FORMATS;
+  if(mode==="simple"){style=pick(STYLES);fmts=FORMATS.filter(f=>["model","speed","variant"].includes(f.k))}
+  else if(mode==="themed"){if(Math.random()<.8)theme=pickTheme(s,true);if(Math.random()<.4)style=pick(STYLES);if(Math.random()<.2)twist=pick(TWISTS);
+    if(twist)fmts=FORMATS.filter(f=>f.k!=="variant"&&f.k!=="diorama")}
+  else{theme=pickTheme(s,false);style=pick(STYLES);twist=pick(TWISTS)}
+  const difficulty=filters.diff==="Any"?pick(["Easy","Easy","Medium","Medium","Hard"]):filters.diff;
+  let fl=FOCUS[difficulty];
+  if(filters.weak&&store.completions.length+store.profile.assessments.length>0){
+    const lv=skillLevels().cur;const weakest=SKEYS.slice().sort((a,b)=>lv[a]-lv[b])[0];
+    const m=fl.filter(f=>f[1]===weakest);if(m.length&&Math.random()<.75)fl=m;
+  }
+  const f=pick(fl);const fmt=weightedFormat(fmts);
+  mix.subjects=[s.id,...mix.subjects].slice(0,30);mix.cats=[s.cat,...mix.cats].slice(0,4);if(theme!=="classic")mix.themes=[theme,...mix.themes].slice(0,6);lsSet("md-mix",mix);
+  return{id:uid(),subject:s.id,theme,style,twist,mode,format:fmt.k,focus:f[0],skill:f[1],rule:pick(RULES[difficulty]),difficulty,time:fmt.time||TIME[difficulty]};
+}
+function titleOf(p){const s=SUB[p.subject],t=THEMES[p.theme]||THEMES.classic;const fmt=FORMATS.find(f=>f.k===p.format)||FORMATS[0];
+  const lead=[p.style,t.a,s.n].filter(Boolean).join(" ")+(p.twist||"");return fmt.t(lead)+"."}
+let rolling=false;
+function commitRoll(p){current=p;recentRolls=[current,...recentRolls].slice(0,12);lsSet("md-rolls",recentRolls);lsSet("md-current",current);
+  rolling=false;document.documentElement.classList.remove("rolling");$("roll").disabled=false;renderChallenge();playRoll()}
+/* generation: shuffle through random blockouts and titles, slowing down, then land */
+function roll(){
+  if(rolling)return;const next=makePrompt();
+  if(REDUCE.matches){commitRoll(next);return}
+  rolling=true;$("roll").disabled=true;document.documentElement.classList.add("rolling");retrigger($("m-roll"),"spin");window.bgPulse?.();
+  const t0=performance.now(),keys=Object.keys(THEMES);let delay=40;
+  const tick=()=>{
+    if(performance.now()-t0>720){commitRoll(next);return}
+    const fake={...next,subject:pick(SUBJECTS).id,theme:pick(keys),style:"",twist:"",format:"model"};
+    $("p-title").textContent=titleOf(fake);$("vp-svg").innerHTML=drawingSVG(fake,"blockout",true);
+    $("p-cat").textContent=SUB[fake.subject].cat;
+    delay*=1.18;setTimeout(tick,delay);
+  };
+  tick();
+}
+function retrigger(el,cls){if(!el)return;el.classList.remove(cls);void el.offsetWidth;el.classList.add(cls)}
+function playRoll(){
+  const gs=$("vp-svg").querySelectorAll(":scope>g");gs.forEach((g,i)=>g.style.animationDelay=(120+i*55)+"ms");
+  retrigger($("vp"),"anim");["p-title","p-format","p-diff","p-cat"].forEach(id=>retrigger($(id),"anim-up"));
+  document.querySelectorAll(".specs dd").forEach((d,i)=>{d.style.animationDelay=(80+i*45)+"ms";retrigger(d,"anim-up")});
+  window.bgPulse?.();
+}
+
+/* completion: check mark, stat gains and a burst of primitives */
+function celebrate(c){
+  const all=[c,...store.completions.filter(x=>x.id!==c.id)];
+  const days=new Set(all.map(x=>dayKey(x.completedAt)));let st=0;const d=new Date();while(days.has(dayKey(d))){st++;d.setDate(d.getDate()-1)}
+  const gain=(DW[c.difficulty]||1)*(.6+(c.rating||3)*.1)*.15;
+  $("cel-title").textContent=c.title;
+  $("cel-stats").innerHTML=[
+    [`+${gain.toFixed(2)}`,SKILLS[c.skill]||"Skill"],[String(all.length),all.length===1?"challenge done":"challenges done"],
+    [String(st),st===1?"day streak":"day streak"],[`${c.minutes}m`,"logged"]
+  ].map(([v,l])=>`<div><b class="num">${esc(v)}</b><span>${esc(l)}</span></div>`).join("");
+  const ov=$("celebrate");ov.hidden=false;retrigger(ov,"show");$("cel-ok").focus();
+  window.bgPulse?.();clearTimeout(celebrate.t);celebrate.t=setTimeout(closeCelebrate,6000);
+  if(!REDUCE.matches)confetti();
+}
+function closeCelebrate(){const ov=$("celebrate");if(ov.hidden)return;ov.hidden=true;clearTimeout(celebrate.t)}
+function confetti(){
+  const cv=$("confetti"),ctx=cv.getContext("2d"),W=innerWidth,H=innerHeight,dpr=Math.min(devicePixelRatio||1,2);
+  cv.width=W*dpr;cv.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);
+  const cols=["#FF6A13","#FF9A5A","#F3F3F1","#8D9099","#FFC199"],shapes=["sq","tri","ring","line"];
+  const ps=Array.from({length:W<700?70:120},()=>{const a=Math.random()*PI*2,v=4+Math.random()*9;
+    return{x:W/2,y:H*.42,vx:Math.cos(a)*v,vy:Math.sin(a)*v-4,r:Math.random()*6,vr:(Math.random()-.5)*.3,s:4+Math.random()*7,c:pick(cols),k:pick(shapes)}});
+  const t0=performance.now();
+  const step=now=>{const t=now-t0;ctx.clearRect(0,0,W,H);
+    ps.forEach(p=>{p.vy+=.22;p.vx*=.985;p.x+=p.vx;p.y+=p.vy;p.r+=p.vr;
+      ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.r);ctx.globalAlpha=Math.max(0,1-t/1900);ctx.strokeStyle=ctx.fillStyle=p.c;ctx.lineWidth=1.6;
+      if(p.k==="sq")ctx.fillRect(-p.s/2,-p.s/2,p.s,p.s);
+      else if(p.k==="tri"){ctx.beginPath();ctx.moveTo(0,-p.s/1.6);ctx.lineTo(p.s/1.8,p.s/2.2);ctx.lineTo(-p.s/1.8,p.s/2.2);ctx.closePath();ctx.stroke()}
+      else if(p.k==="ring"){ctx.beginPath();ctx.arc(0,0,p.s/2,0,PI*2);ctx.stroke()}
+      else{ctx.fillRect(-p.s,-1,p.s*2,2)}
+      ctx.restore()});
+    if(t<1900&&!$("celebrate").hidden)requestAnimationFrame(step);else ctx.clearRect(0,0,W,H)};
+  requestAnimationFrame(step);
+}
+
+/* ================= STORAGE ================= */
+function setSync(state){
+  const d=$("sync-dot"),t=$("sync-txt");d.className="dot";
+  if(state==="cloud"){d.classList.add("on");t.textContent="Synced to your account"}
+  else if(state==="local"){d.classList.add("local");t.textContent="Saved on this device"}
+  else if(state==="slow"){d.classList.add("local");t.textContent="Can't reach storage yet"}
+  else t.textContent="Connecting…";
+}
+async function initStore(){
+  const use=window.claude?.use?.bind(window.claude);
+  let db=null,user=null,assets=null;
+  if(use){try{[db,user,assets]=await Promise.all([use("db"),use("user"),use("assets")])}catch(e){}}
+  let id=null;if(db&&user){try{id=await user.id()}catch(e){}}
+  if(db&&id){
+    store.mode="cloud";store.db=db;store.uid=id;store.assets=assets;setSync("pending");
+    const timer=setTimeout(()=>{if(!store.loaded)setSync("slow")},10000);
+    const prof=db.doc(`data/users/${id}/profile`);
+    store.profRef=prof;store.col=prof.collection("completions");
+    store.col.orderBy("completedAt","desc").limit(1000).onSnapshot(snap=>{
+      store.completions=snap.docs.map(d=>({...d.data(),id:d.id}));
+      if(!snap.metadata.fromCache){store.loaded=true;clearTimeout(timer);setSync("cloud")}
+      renderAll();
+    },()=>{clearTimeout(timer);setSync("slow")});
+    db.doc(`data/users/${id}/weekly`).onSnapshot(snap=>{store.weekly=snap.exists?snap.data():null;renderWeekly()},()=>{});
+    prof.onSnapshot(snap=>{const d=snap.exists?snap.data():null;store.profile={assessments:Array.isArray(d?.assessments)?d.assessments:[]};renderAll()},()=>{});
+  }else{
+    store.mode="local";store.completions=lsGet("md-completions",[]);store.profile=lsGet("md-profile",{assessments:[]});store.loaded=true;setSync("local");renderAll();
+  }
+}
+async function addCompletion(c){
+  if(store.mode==="cloud"){await store.col.doc(c.id).set(c)}
+  else{store.completions=[c,...store.completions];if(!lsSet("md-completions",store.completions)){store.completions.shift();throw{message:"This device's storage is full. Remove a few old renders first."}}renderAll()}
+}
+async function patchCompletion(id,patch){
+  if(store.mode==="cloud"){await store.col.doc(id).update(patch)}
+  else{store.completions=store.completions.map(c=>c.id===id?{...c,...patch}:c);lsSet("md-completions",store.completions);renderAll()}
+}
+async function removeCompletion(c){
+  if(store.mode==="cloud"){await store.col.doc(c.id).delete();if(c.assetId&&store.assets){try{await store.assets.delete(c.assetId)}catch(e){}}}
+  else{store.completions=store.completions.filter(x=>x.id!==c.id);lsSet("md-completions",store.completions);renderAll()}
+}
+async function saveProfile(p){
+  if(store.mode==="cloud")await store.profRef.set(p);
+  else{store.profile=p;lsSet("md-profile",p);renderAll()}
+}
+function imgSrc(c){return c.assetId?"/_blob/"+c.assetId:(c.thumb||"")}
+
+/* images */
+function loadImage(src){return new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=src})}
+async function scaleImage(fileOrBlob,max,q=.82){
+  const url=URL.createObjectURL(fileOrBlob);
+  try{const img=await loadImage(url);const k=Math.min(1,max/Math.max(img.naturalWidth,img.naturalHeight));
+    const cv=document.createElement("canvas");cv.width=Math.round(img.naturalWidth*k);cv.height=Math.round(img.naturalHeight*k);
+    const cx=cv.getContext("2d");cx.fillStyle="#fff";cx.fillRect(0,0,cv.width,cv.height);cx.drawImage(img,0,0,cv.width,cv.height);
+    const blob=await new Promise(r=>cv.toBlob(r,"image/jpeg",q));return{blob,dataURL:max<=640?cv.toDataURL("image/jpeg",q):null};
+  }finally{URL.revokeObjectURL(url)}
+}
+
+/* ================= STATS ================= */
+const DW={Easy:1,Medium:2,Hard:3};
+function latestAssessment(){const a=store.profile.assessments;return a.length?a[a.length-1]:null}
+function skillLevels(){
+  const la=latestAssessment();const base={},cur={};
+  SKEYS.forEach(k=>{base[k]=la?Number(la.skills?.[k])||1:1;cur[k]=base[k]});
+  const since=la?la.date:0;
+  store.completions.forEach(c=>{if(c.completedAt<since)return;const w=(DW[c.difficulty]||1)*(.6+(c.rating||3)*.1);
+    if(cur[c.skill]!=null)cur[c.skill]+=w*.15;cur.form+=w*.03});
+  SKEYS.forEach(k=>cur[k]=Math.min(10,cur[k]));
+  return{base,cur,assessed:!!la};
+}
+function streak(){
+  const days=new Set(store.completions.map(c=>dayKey(c.completedAt)));let n=0;const d=new Date();
+  if(!days.has(dayKey(d)))d.setDate(d.getDate()-1);
+  while(days.has(dayKey(d))){n++;d.setDate(d.getDate()-1)}return n;
+}
+
+/* ================= RENDER ================= */
+const REDUCE=matchMedia("(prefers-reduced-motion: reduce)");
+function countTo(el,to){
+  const from=+(el.dataset.v||0);el.dataset.v=to;if(from===to||REDUCE.matches){el.textContent=to;return}
+  const t0=performance.now(),d=700;const step=now=>{const k=Math.min(1,(now-t0)/d),e=1-Math.pow(1-k,3);el.textContent=Math.round(from+(to-from)*e);if(k<1)requestAnimationFrame(step)};requestAnimationFrame(step);
+}
+function renderHello(st){
+  const h=new Date().getHours();const g=h<5?"Up late":h<12?"Good morning":h<17?"Good afternoon":"Good evening";
+  const n=store.completions.length;$("hello-g").textContent=g+".";
+  $("hello-s").textContent=st>1?`Day ${st} of your streak. Keep it going.`:n?`Challenge #${n+1} is ready when you are.`:"Roll your first challenge to get started.";
+}
+function renderKPIs(){
+  const cs=store.completions;
+  countTo($("k-done"),cs.length);
+  const wk=cs.filter(c=>c.completedAt>Date.now()-7*864e5).length;
+  $("k-done-s").textContent=cs.length?`${wk} this week`:"no challenges yet";
+  const st=streak();countTo($("k-streak"),st);renderHello(st);$("k-streak-s").textContent=st===1?"day in a row":"days in a row";
+  const mins=cs.reduce((a,c)=>a+(Number(c.minutes)||0),0);$("k-hours").textContent=mins>=60?(mins/60).toFixed(1)+"h":mins+"m";
+  $("k-hours-s").textContent=cs.length?`avg ${Math.round(mins/cs.length)} min each`:"logged";
+  const r=cs.slice(0,5).map(c=>c.rating||0),pr=cs.slice(5,10).map(c=>c.rating||0);
+  if(r.length){const a=r.reduce((x,y)=>x+y,0)/r.length;$("k-rating").textContent=a.toFixed(1);
+    if(pr.length){const b=pr.reduce((x,y)=>x+y,0)/pr.length,d=a-b;$("k-rating-s").innerHTML=`<span class="${d>=0?"up":"down"}">${d>=0?"▲":"▼"} ${Math.abs(d).toFixed(1)}</span> vs previous 5`}
+    else $("k-rating-s").textContent=`last ${r.length} challenges`}
+  else{$("k-rating").textContent="–";$("k-rating-s").textContent="last 5 challenges"}
+}
+function renderVP(){
+  if(!current)return;const s=SUB[current.subject];
+  $("vp-svg").innerHTML=drawingSVG(current,vpMode,true);
+  $("vp-svg").setAttribute("aria-label",`Front view reference of a ${s.n}${vpMode==="blockout"?", colored by starting primitive":""}`);
+  $("vp-coll").textContent=`(1) Collection | ${s.n}`;
+  $("vp-size").textContent=`real size ≈ ${fmtSize(s.h)}`;
+  $("mode-shaded").setAttribute("aria-pressed",vpMode==="shaded");$("mode-block").setAttribute("aria-pressed",vpMode==="blockout");
+  if(vpMode==="blockout"){const cnt={};s.parts.forEach(q=>cnt[q.p]=(cnt[q.p]||0)+1);
+    $("legend").innerHTML=Object.keys(PRIM).filter(k=>cnt[k]).map(k=>`<span><i style="background:${PRIM[k][1]}"></i>${PRIM[k][0]} ×${cnt[k]}</span>`).join("");}
+  else $("legend").innerHTML=`<span>Switch to Blockout to see which primitive each part starts from.</span>`;
+}
+function renderChallenge(){
+  if(!current)return;const s=SUB[current.subject],t=THEMES[current.theme];const fmt=FORMATS.find(f=>f.k===current.format)||FORMATS[0];
+  $("p-format").textContent=fmt.n;$("p-diff").textContent=current.difficulty;$("p-diff").className="pill "+current.difficulty;$("p-cat").textContent=s.cat;
+  $("p-title").textContent=titleOf(current);
+  $("s-theme").textContent=[t.n,current.style].filter(Boolean).join(" · ");
+  $("s-focus").innerHTML=`<b>${esc(current.focus)}</b> <span class="meta">· ${esc(SKILLS[current.skill])}</span>`;
+  $("s-rule").textContent=current.rule;$("s-time").textContent=`${current.time} minutes`;$("s-start").textContent=s.start;
+  renderVP();renderRecent();renderRelated();if(typeof renderWeekly==="function")renderWeekly();
+}
+function renderRecent(){
+  const el=$("recent");if(!recentRolls.length){el.innerHTML='<span class="empty">Your rolls will collect here.</span>';return}
+  el.innerHTML=recentRolls.map((p,i)=>`<button class="mini" data-i="${i}" ${current&&p.id===current.id?'aria-current="true"':""} title="${esc(titleOf(p))}"><div class="art"><svg viewBox="0 0 100 100" aria-hidden="true">${drawingSVG(p,"shaded",false)}</svg></div><span>${esc(SUB[p.subject].n)}</span></button>`).join("");
+}
+function renderProgress(){
+  const {base,cur,assessed}=skillLevels();const la=latestAssessment();
+  $("sk-src").textContent=assessed?`baseline: ${fmtDate(la.date)}`:"not assessed yet";
+  $("skills").innerHTML=SKEYS.map(k=>{const d=cur[k]-base[k];return `<div class="sk"><span class="n">${SKILLS[k]}</span><div class="track"><div class="fill" style="width:${cur[k]*10}%"></div><div class="base" style="left:calc(${base[k]*10}% - 1px)" title="Baseline ${base[k].toFixed(1)}"></div></div><span class="val num">${cur[k].toFixed(1)}${d>.05?` <span class="up">+${d.toFixed(1)}</span>`:""}</span></div>`}).join("");
+  const cs=store.completions;
+  // weekly
+  const now=new Date();const mon=new Date(now.getFullYear(),now.getMonth(),now.getDate()-((now.getDay()+6)%7));
+  const weeks=[];for(let i=7;i>=0;i--){const s=new Date(mon);s.setDate(s.getDate()-7*i);const e=new Date(s);e.setDate(e.getDate()+7);weeks.push({s,n:cs.filter(c=>c.completedAt>=s.getTime()&&c.completedAt<e.getTime()).length})}
+  const mx=Math.max(4,...weeks.map(w=>w.n));const W=320,H=150,pl=22,pb=20,pt=8,bw=(W-pl)/8;
+  let svg=`<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Challenges completed per week, last 8 weeks">`;
+  [0,mx/2,mx].forEach(v=>{const y=pt+(H-pb-pt)*(1-v/mx);svg+=`<line x1="${pl}" x2="${W}" y1="${y}" y2="${y}" stroke="var(--line)" stroke-width="1"/><text x="${pl-5}" y="${y+3}" text-anchor="end">${Math.round(v)}</text>`});
+  weeks.forEach((w,i)=>{const h=(H-pb-pt)*w.n/mx;const x=pl+i*bw+bw*.18;svg+=`<rect x="${x}" y="${H-pb-h}" width="${bw*.64}" height="${Math.max(h,0)}" rx="3" fill="${i===7?"var(--accent)":"var(--muted)"}" opacity="${i===7?1:.55}"/>`;
+    if(i%2===1||i===7)svg+=`<text x="${x+bw*.32}" y="${H-5}" text-anchor="middle">${fmtDate(w.s)}</text>`});
+  $("weekly").innerHTML=svg+"</svg>";
+  // trend
+  const tr=cs.slice(0,12).reverse();
+  if(tr.length<2){$("trend").innerHTML='<p class="empty">Log at least two challenges to see a trend.</p>'}
+  else{const W2=320,H2=150,pl2=22,pb2=14,pt2=10;const xs=i=>pl2+8+(W2-pl2-16)*i/(tr.length-1),ys=v=>pt2+(H2-pb2-pt2)*(1-(v-1)/4);
+    let s2=`<svg class="chart" viewBox="0 0 ${W2} ${H2}" role="img" aria-label="Self-rating for the last ${tr.length} challenges">`;
+    [1,3,5].forEach(v=>s2+=`<line x1="${pl2}" x2="${W2}" y1="${ys(v)}" y2="${ys(v)}" stroke="var(--line)"/><text x="${pl2-5}" y="${ys(v)+3}" text-anchor="end">${v}</text>`);
+    const pts=tr.map((c,i)=>`${xs(i).toFixed(1)},${ys(c.rating||3).toFixed(1)}`);
+    s2+=`<polygon points="${xs(0)},${ys(1)} ${pts.join(" ")} ${xs(tr.length-1)},${ys(1)}" fill="var(--accent)" opacity=".12"/><polyline points="${pts.join(" ")}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"/>`;
+    const lx=xs(tr.length-1),ly=ys(tr[tr.length-1].rating||3);s2+=`<circle cx="${lx}" cy="${ly}" r="4" fill="var(--accent)" stroke="var(--panel)" stroke-width="2"/>`;
+    $("trend").innerHTML=s2+"</svg>"}
+  // cats & diffs
+  const mxc=Math.max(1,...CATS.map(c=>cs.filter(x=>x.cat===c).length));
+  $("cats").innerHTML=CATS.map(c=>{const n=cs.filter(x=>x.cat===c).length;return `<div class="bar"><span>${c}</span><div class="t"><div style="width:${n/mxc*100}%"></div></div><span class="c">${n}</span></div>`}).join("");
+  const mxd=Math.max(1,...["Easy","Medium","Hard"].map(d=>cs.filter(x=>x.difficulty===d).length));
+  $("diffs").innerHTML=["Easy","Medium","Hard"].map(d=>{const n=cs.filter(x=>x.difficulty===d).length;const m=cs.filter(x=>x.difficulty===d).reduce((a,c)=>a+(Number(c.minutes)||0),0);return `<div class="bar"><span>${d}</span><div class="t"><div style="width:${n/mxd*100}%"></div></div><span class="c">${n}</span></div><div class="meta" style="margin:-4px 0 4px 110px">${n?`avg ${Math.round(m/n)} min`:"–"}</div>`}).join("");
+}
+let pendingDelete=null;
+function renderRenders(){
+  const cs=store.completions;$("r-count").textContent=cs.length?`${cs.length} logged`:"";
+  if(!cs.length){$("gallery").innerHTML=`<div class="panel empty" style="grid-column:1/-1">Finish a challenge and press <b>Log completion</b> to add your render here.${store.mode==="pending"?" Loading your renders…":""}</div>`;return}
+  $("gallery").innerHTML=cs.map(c=>{const src=imgSrc(c);const rv=c.review;
+    return `<article class="rc"><div class="img">${src?`<img src="${esc(src)}" alt="Render: ${esc(c.title)}" loading="lazy">`:"No render attached"}</div><div class="body">
+      <h4>${esc(c.title)}</h4>
+      <div class="meta">${fmtDate(c.completedAt)} · ${esc(c.difficulty)} · ${esc(c.minutes||"?")} min · rated ${esc(c.rating||"–")}/5</div>
+      ${c.notes?`<div style="font-size:.84rem">${esc(c.notes)}</div>`:""}
+      ${rv?`<div class="review"><div><span class="score">${esc(rv.score)}/10</span> · ${esc(rv.praise)}</div>${Array.isArray(rv.tips)&&rv.tips.length?`<ul>${rv.tips.map(t=>`<li>${esc(t)}</li>`).join("")}</ul>`:""}</div>`:(c.reviewPending?`<div class="meta">Getting feedback…</div>`:"")}
+      <div><button class="linkbtn ${pendingDelete===c.id?"danger":""}" data-del="${esc(c.id)}">${pendingDelete===c.id?"Tap again to delete":"Delete"}</button></div>
+    </div></article>`}).join("");
+}
+function radarSVG(cur,prev){
+  const cx=55,cy=52,R0=34;const ang=i=>-PI/2+i*2*PI/6;const pt=(i,v)=>[cx+R0*v/10*Math.cos(ang(i)),cy+R0*v/10*Math.sin(ang(i))];
+  let s=`<svg class="radar chart" viewBox="0 0 110 104" role="img" aria-label="Skill radar">`;
+  [2,4,6,8,10].forEach(v=>s+=`<polygon points="${SKEYS.map((k,i)=>pt(i,v).join(",")).join(" ")}" fill="none" stroke="var(--line)" stroke-width=".4"/>`);
+  SKEYS.forEach((k,i)=>{const [x,y]=pt(i,10);s+=`<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="var(--line)" stroke-width=".4"/>`;
+    const [lx,ly]=pt(i,12.4);s+=`<text x="${lx}" y="${ly+1.4}" text-anchor="${Math.abs(lx-cx)<3?"middle":lx<cx?"end":"start"}">${SKILLS[k].split(" ")[0]}</text>`});
+  if(prev)s+=`<polygon points="${SKEYS.map((k,i)=>pt(i,prev[k]||1).join(",")).join(" ")}" fill="none" stroke="var(--muted)" stroke-width=".7" stroke-dasharray="1.5 1"/>`;
+  s+=`<polygon points="${SKEYS.map((k,i)=>pt(i,cur[k]||1).join(",")).join(" ")}" fill="var(--accent)" fill-opacity=".22" stroke="var(--accent)" stroke-width="1"/>`;
+  SKEYS.forEach((k,i)=>{const [x,y]=pt(i,cur[k]||1);s+=`<circle cx="${x}" cy="${y}" r="1.3" fill="var(--accent)"/>`});
+  return s+"</svg>";
+}
+function renderAssessment(){
+  const as=store.profile.assessments;const la=latestAssessment();
+  if(!la){$("a-result").innerHTML=`<div class="ph"><h3>Your baseline</h3></div><p class="empty">No assessment yet. Run one to set your starting skill levels; the Progress view measures growth from there.</p>${radarSVG(Object.fromEntries(SKEYS.map(k=>[k,0])),null)}`}
+  else{const prev=as.length>1?as[as.length-2].skills:null;
+    $("a-result").innerHTML=`<div class="ph"><h3>${esc(la.level||"Assessment")} · <span class="num">${Number(la.overall).toFixed(1)}</span>/10</h3><span class="label">${fmtDate(la.date)} · ${la.n} render${la.n===1?"":"s"}</span></div>
+      ${radarSVG(la.skills,prev)}
+      ${prev?`<p class="meta" style="margin:4px 0 10px">Orange: latest · dashed: previous assessment</p>`:""}
+      <p style="margin:0 0 12px">${esc(la.summary)}</p>
+      <div class="label" style="margin-bottom:6px">Strengths</div><div class="chips" style="margin-bottom:12px">${(la.strengths||[]).map(s=>`<span class="chip">${esc(s)}</span>`).join("")}</div>
+      <div class="label" style="margin-bottom:6px">Work on next</div><div class="chips">${(la.focusNext||[]).map(s=>`<span class="chip hl">${esc(s)}</span>`).join("")}</div>`}
+  $("a-history").innerHTML=as.length?`<table><thead><tr><th>Date</th><th>Source</th><th>Overall</th>${SKEYS.map(k=>`<th>${SKILLS[k].split(" ")[0]}</th>`).join("")}</tr></thead><tbody>${as.slice().reverse().map(a=>`<tr><td>${fmtDate(a.date)}</td><td>${a.source==="log"?"Logged renders":"Upload"} (${a.n})</td><td class="num">${Number(a.overall).toFixed(1)}</td>${SKEYS.map(k=>`<td class="num">${Number(a.skills?.[k]||0).toFixed(0)}</td>`).join("")}</tr>`).join("")}</tbody></table>`:'<p class="empty">Past assessments will be listed here so you can compare them.</p>';
+  const withImg=store.completions.filter(c=>imgSrc(c)).length;
+  $("a-logged").disabled=!withImg||!aiOK;$("a-logged").textContent=withImg?`Assess my last ${Math.min(6,withImg)} logged renders`:"Assess my logged renders";
+}
+/* guides view */
+let gCat="All",gPins=new Set(lsGet("md-pins",[])),gOpen=new Set();
+function guideHTML(g,q){const hl=t=>{const e=esc(t);if(!q)return e;const i=t.toLowerCase().indexOf(q);return i<0?e:esc(t.slice(0,i))+"<mark>"+esc(t.slice(i,i+q.length))+"</mark>"+esc(t.slice(i+q.length))};
+  const nodes=g.n?`<div class="nodes">${g.n.map(([n,k],i)=>`${i?'<span class="arrow" aria-hidden="true">→</span>':""}<span class="node" style="--k:${NK[k]}">${esc(n)}</span>`).join("")}</div>`:"";
+  return `<details class="gcard" id="g-${g.id}" data-id="${g.id}" ${gOpen.has(g.id)||(q&&q.length>1&&!g.t.toLowerCase().includes(q))?"open":""}>
+    <summary><div><div class="gcat">${esc(g.c)} · ${esc(SKILLS[g.sk])}</div><h4>${esc(g.t)}</h4></div>
+      <button class="pin" data-pin="${g.id}" aria-pressed="${gPins.has(g.id)}" aria-label="${gPins.has(g.id)?"Unpin":"Pin"} ${esc(g.t)}">★</button>
+      <div class="gsum">${esc(g.s)}</div></summary>
+    <div class="gbody">${nodes}${g.st?`<ol>${g.st.map(s=>`<li>${g.c==="Shortcuts"?s:esc(s)}</li>`).join("")}</ol>`:""}
+      ${g.ref?`<dl class="ref">${g.ref.map(r=>{const [a,b]=r.split("::");return `<dt>${hl(a)}</dt><dd>${hl(b)}</dd>`}).join("")}</dl>`:""}
+      ${g.tip?`<div class="gtip"><b>Tip</b> ${esc(g.tip)}</div>`:""}
+      <div class="gtags">${g.tags.map(t=>`<span class="tag">${esc(t)}</span>`).join("")}</div></div>
+  </details>`;
+}
+function renderGuides(){
+  $("g-cats").innerHTML=["All",...GCATS].map(c=>`<button data-c="${esc(c)}" aria-pressed="${gCat===c}">${esc(c)}</button>`).join("");
+  const q=$("g-q").value.trim().toLowerCase(),pinOnly=$("g-pin").checked;
+  const list=GUIDES.filter(g=>(gCat==="All"||g.c===gCat)&&(!pinOnly||gPins.has(g.id))&&(!q||[g.t,g.s,g.c,...g.tags,...(g.st||[]),...(g.ref||[]),g.tip||""].join(" ").toLowerCase().replace(/<[^>]+>/g,"").includes(q)));
+  list.sort((a,b)=>(gPins.has(b.id)-gPins.has(a.id)));
+  $("g-list").innerHTML=list.length?list.map(g=>guideHTML(g,q)).join(""):`<div class="panel empty" style="grid-column:1/-1">${pinOnly&&!gPins.size?"Pin guides with ★ to keep your go‑to setups here.":"No guides match that search."}</div>`;
+}
+function openGuide(id){
+  gCat="All";$("g-q").value="";$("g-pin").checked=false;gOpen.add(id);location.hash="guides";showView();renderGuides();
+  const el=$("g-"+id);if(el){el.scrollIntoView({behavior:REDUCE.matches?"auto":"smooth",block:"center"});retrigger(el,"flash");setTimeout(()=>el.classList.remove("flash"),1600)}
+}
+$("g-q").addEventListener("input",renderGuides);$("g-pin").onchange=renderGuides;
+$("g-cats").onclick=e=>{const b=e.target.closest("button");if(!b)return;gCat=b.dataset.c;renderGuides()};
+$("g-list").addEventListener("click",e=>{const p=e.target.closest("[data-pin]");if(!p)return;e.preventDefault();const id=p.dataset.pin;
+  gPins.has(id)?gPins.delete(id):gPins.add(id);lsSet("md-pins",[...gPins]);renderGuides()});
+$("g-list").addEventListener("toggle",e=>{const d=e.target;if(d.dataset?.id)d.open?gOpen.add(d.dataset.id):gOpen.delete(d.dataset.id)},true);
+function renderRelated(){if(!current)return;const rg=relatedGuides(current);
+  $("related").innerHTML=rg.length?`<span class="label">Guides for this</span>${rg.map(g=>`<button data-g="${g.id}">${esc(g.t)}</button>`).join("")}`:""}
+$("related").onclick=e=>{const b=e.target.closest("[data-g]");if(b)openGuide(b.dataset.g)};
+
+/* weekly challenge (written by the weekly scheduled task) */
+function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function weeklyPrompt(w){
+  if(!w||!SUB[w.subject])return null;const d=["Easy","Medium","Hard"].includes(w.difficulty)?w.difficulty:"Medium";
+  const r=mulberry(Math.floor(w.issuedAt/1000));const lv=skillLevels().cur;const weakest=SKEYS.slice().sort((a,b)=>lv[a]-lv[b])[0];
+  let fl=FOCUS[d].filter(f=>f[1]===weakest);if(!fl.length)fl=FOCUS[d];const f=fl[Math.floor(r()*fl.length)];
+  return{id:"weekly-"+w.issuedAt,subject:w.subject,theme:THEMES[w.theme]?w.theme:"classic",style:"",twist:"",mode:"themed",format:"model",focus:f[0],skill:f[1],
+    rule:RULES[d][Math.floor(r()*RULES[d].length)],difficulty:d,time:TIME[d],weekly:true};
+}
+function renderWeekly(){
+  const card=$("weekly-card"),w=store.weekly;const p=weeklyPrompt(w);
+  if(!p||Date.now()-w.issuedAt>10*864e5){card.hidden=true;return}
+  const done=store.completions.some(c=>c.promptId===p.id);
+  const wk=store.completions.filter(c=>c.completedAt>Date.now()-7*864e5).length;
+  card.hidden=false;
+  card.innerHTML=`<div class="wk-body"><span class="label">Weekly challenge · ${new Date(w.issuedAt).toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"})}</span>
+    <div class="wk-title">${esc(titleOf(p))}</div>
+    <div class="meta">${esc(p.difficulty)} · ${esc(SKILLS[p.skill])} focus · ${wk} logged in the last 7 days</div></div>
+    ${done?`<span class="done">Completed ✓</span>`:current?.id===p.id?`<span class="meta">In progress</span>`:`<button class="btn primary" id="wk-start">Start this challenge</button>`}`;
+  const b=$("wk-start");if(b)b.onclick=()=>{current=p;lsSet("md-current",current);renderChallenge();playRoll();renderWeekly()};
+}
+function renderAll(){renderKPIs();renderProgress();renderRenders();renderAssessment();renderWeekly()}
+
+/* ================= VIEWS ================= */
+const VIEWS=["challenge","progress","renders","assessment","guides"];
+const mq=matchMedia("(max-width: 640px)");
+function showView(){let v=VIEWS.includes(location.hash.slice(1))?location.hash.slice(1):"challenge";
+  const mobile=mq.matches;document.documentElement.classList.toggle("m",mobile);
+  if(mobile&&(v==="renders"||v==="assessment"||v==="guides"))v="challenge";
+  if(v==="guides"&&!$("g-list").innerHTML)renderGuides();
+  document.documentElement.dataset.view=v;
+  VIEWS.forEach(n=>{$("v-"+n).hidden=n!==v;$("tab-"+n).setAttribute("aria-selected",n===v)});
+  ["challenge","progress"].forEach(n=>$("mt-"+n).setAttribute("aria-selected",n===v))}
+document.querySelectorAll(".tab,.mtab").forEach(b=>b.onclick=()=>{location.hash=b.dataset.view;showView();scrollTo(0,0)});
+addEventListener("hashchange",showView);
+mq.addEventListener?mq.addEventListener("change",showView):mq.addListener(showView);
+$("m-roll").onclick=()=>{if(document.documentElement.dataset.view!=="challenge"){location.hash="challenge";showView()}roll();scrollTo(0,0)};
+
+/* ================= CONTROLS ================= */
+$("f-cat").innerHTML=["All",...CATS].map(c=>`<option value="${c}">${c==="All"?"All categories":c}</option>`).join("");
+$("f-cat").value=filters.cat;$("f-cat").onchange=e=>{filters.cat=e.target.value;lsSet("md-filters",filters)};
+$("f-diff").innerHTML=["Any","Easy","Medium","Hard"].map(d=>`<button id="fd-${d}" aria-pressed="${filters.diff===d}">${d}</button>`).join("");
+$("f-diff").onclick=e=>{const b=e.target.closest("button");if(!b)return;filters.diff=b.textContent;lsSet("md-filters",filters);$("f-diff").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b))};
+$("f-mode").innerHTML=Object.entries(MODES).map(([k,n])=>`<button id="fm-${k}" data-k="${k}" aria-pressed="${filters.mode===k}" title="${k==="simple"?"Subject and style only":k==="themed"?"Themes matched to the subject, occasional twist":"Any theme plus a twist"}">${n}</button>`).join("");
+$("f-mode").onclick=e=>{const b=e.target.closest("button");if(!b)return;filters.mode=b.dataset.k;lsSet("md-filters",filters);$("f-mode").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b))};
+$("f-weak").checked=!!filters.weak;$("f-weak").onchange=e=>{filters.weak=e.target.checked;lsSet("md-filters",filters)};
+$("roll").onclick=roll;
+$("mode-shaded").onclick=()=>{vpMode="shaded";renderVP()};$("mode-block").onclick=()=>{vpMode="blockout";renderVP()};
+$("recent").onclick=e=>{const b=e.target.closest(".mini");if(!b)return;current=recentRolls[+b.dataset.i];lsSet("md-current",current);renderChallenge()};
+$("copy").onclick=()=>{if(!current)return;const s=SUB[current.subject];
+  const txt=`${titleOf(current)}\nDifficulty: ${current.difficulty} · Time box: ${current.time} min\nFocus: ${current.focus}\nRule: ${current.rule}\nReal size: ≈ ${fmtSize(s.h)}\nStart: ${s.start}`;
+  try{navigator.clipboard.writeText(txt).then(()=>toast("Copied"),()=>toast("Copy isn't allowed here. Select the text instead."))}catch(e){toast("Copy isn't allowed here. Select the text instead.")}};
+document.addEventListener("keydown",e=>{if(e.target.closest("input,textarea,select,button")||!$("modal").hidden||!$("celebrate").hidden)return;if((e.key==="r"||e.key==="R")&&!e.metaKey&&!e.ctrlKey&&!$("v-challenge").hidden){e.preventDefault();roll()}});
+
+/* gallery delete (two-tap) */
+$("gallery").onclick=async e=>{const b=e.target.closest("[data-del]");if(!b)return;const id=b.dataset.del;
+  if(pendingDelete!==id){pendingDelete=id;renderRenders();setTimeout(()=>{if(pendingDelete===id){pendingDelete=null;renderRenders()}},4000);return}
+  pendingDelete=null;const c=store.completions.find(x=>x.id===id);if(!c)return;
+  try{await removeCompletion(c);toast("Deleted")}catch(err){toast("Couldn't delete. Try again.")}};
+
+/* ================= AI (sample) ================= */
+let sample=null,aiOK=false,aiMax=6;
+async function initAI(){
+  try{sample=await window.claude?.use?.("sample")}catch(e){sample=null}
+  if(sample){try{const lim=await sample.limits();if(lim?.images){aiOK=true;aiMax=Math.min(6,lim.images.maxCount||6);$("a-files").accept=lim.images.mediaTypes.join(",")}}catch(e){}}
+  $("a-limit").textContent=aiOK?`Up to ${aiMax} images · JPG or PNG`:"AI assessment isn't available in this view. Open the page in claude.ai while signed in.";
+  if(!aiOK){$("m-ai").checked=false;$("m-ai").disabled=true}
+  renderAssessment();
+}
+function aiErr(e){const c=e?.code;
+  if(c==="not_granted")return"Claude access was declined for this page. You can allow it from the page's permissions.";
+  if(c==="rate_limited")return"Too many requests right now. Wait a minute and try again.";
+  if(c==="invalid_json")return"Couldn't read Claude's answer. Try again.";
+  if(c==="image_rejected")return"One of the images couldn't be read. Try JPG or PNG files.";
+  return e?.message||"Something went wrong. Try again."}
+const clamp=v=>Math.max(1,Math.min(10,Number(v)||1));
+async function runAssessment(blobs,source){
+  const st=$("a-status");st.className="status";st.textContent=`Analyzing ${blobs.length} render${blobs.length===1?"":"s"}… this can take up to a minute.`;
+  $("a-run").disabled=true;$("a-logged").disabled=true;
+  const prompt=`You are a supportive but honest Blender 3D modeling mentor. The ${blobs.length} attached image(s) are renders made by one hobbyist who is learning Blender. Estimate their current skill in six areas on a 1–10 scale (1 = first week in Blender, 5 = solid hobbyist, 8 = professional portfolio, 10 = industry lead):
+- form: silhouette, proportion and shape language
+- topo: mesh cleanliness as visible in the render (smoothing artifacts, pinching, bevel quality)
+- mods: evidence of modifier use (bevels, arrays, mirrors, solidify, booleans)
+- uv: texture placement, scale and stretching
+- mat: material and shader quality
+- light: lighting, camera and render composition
+Judge only what is visible. Where evidence is thin, score conservatively and say so in the summary.
+Reply with only JSON in this shape:
+{"overall":4.5,"level":"Beginner","skills":{"form":5,"topo":4,"mods":4,"uv":3,"mat":4,"light":5},"strengths":["..."],"focusNext":["..."],"summary":"..."}
+level is one of Beginner, Intermediate, Advanced. strengths and focusNext: up to 3 items each, under 12 words each, specific to Blender. summary: under 60 words, addressed to the artist as "you".`;
+  try{
+    const r=await sample.json(prompt,{images:blobs,modelTier:"default"});
+    if(!r||typeof r!=="object"||!r.skills)throw{code:"invalid_json"};
+    const a={date:Date.now(),source,n:blobs.length,overall:clamp(r.overall),level:["Beginner","Intermediate","Advanced"].includes(r.level)?r.level:"Beginner",
+      skills:Object.fromEntries(SKEYS.map(k=>[k,clamp(r.skills[k])])),strengths:(r.strengths||[]).slice(0,3).map(String),focusNext:(r.focusNext||[]).slice(0,3).map(String),summary:String(r.summary||"")};
+    const p={assessments:[...store.profile.assessments,a].slice(-20)};
+    await saveProfile(p);st.textContent="Assessment saved. Your skill baseline is updated.";
+    aFiles=[];renderThumbs();
+  }catch(e){st.className="status err";st.textContent=aiErr(e)}
+  finally{$("a-run").disabled=!aFiles.length;renderAssessment()}
+}
+let aFiles=[];
+function renderThumbs(){$("a-thumbs").innerHTML="";aFiles.forEach(f=>{const i=document.createElement("img");i.alt="Selected render";i.src=URL.createObjectURL(f);i.onload=()=>URL.revokeObjectURL(i.src);$("a-thumbs").appendChild(i)});$("a-run").disabled=!aFiles.length||!aiOK}
+function addFiles(list){aFiles=[...aFiles,...[...list].filter(f=>f.type.startsWith("image/"))].slice(0,aiMax);renderThumbs()}
+$("a-files").onchange=e=>{addFiles(e.target.files);e.target.value=""};
+const drop=$("drop");["dragenter","dragover"].forEach(t=>drop.addEventListener(t,e=>{e.preventDefault();drop.classList.add("over")}));
+["dragleave","drop"].forEach(t=>drop.addEventListener(t,e=>{e.preventDefault();drop.classList.remove("over")}));
+drop.addEventListener("drop",e=>addFiles(e.dataTransfer.files));
+$("a-run").onclick=async()=>{if(!aFiles.length)return;const blobs=[];for(const f of aFiles)blobs.push((await scaleImage(f,1280)).blob);runAssessment(blobs,"upload")};
+$("a-logged").onclick=async()=>{const cs=store.completions.filter(c=>imgSrc(c)).slice(0,aiMax);const blobs=[];
+  for(const c of cs){try{blobs.push(await (await fetch(imgSrc(c))).blob())}catch(e){}}
+  if(!blobs.length){$("a-status").textContent="Couldn't load your logged renders.";return}runAssessment(blobs,"log")};
+
+async function reviewRender(id,blob,c){
+  try{
+    const r=await sample.json(`You are a friendly Blender mentor. The attached image is a hobbyist's finished render for this practice challenge:
+"${c.title}"
+Skill focus: ${c.focus}. Rule: ${c.rule}.
+Score how well the render meets the challenge and shows the focus skill, 1–10. Reply with only JSON: {"score":6,"praise":"one sentence on what works","tips":["specific Blender tip","specific Blender tip"]}. Keep each item under 25 words.`,{images:[blob],modelTier:"default"});
+    await patchCompletion(id,{review:{score:clamp(r.score),praise:String(r.praise||""),tips:(r.tips||[]).slice(0,3).map(String)},reviewPending:false});
+  }catch(e){await patchCompletion(id,{reviewPending:false}).catch(()=>{});toast("Feedback failed: "+aiErr(e))}
+}
+
+/* ================= LOG MODAL ================= */
+let mRating=4,mFile=null;
+$("m-rate").innerHTML=[1,2,3,4,5].map(n=>`<button id="mr-${n}" aria-pressed="false">${n}</button>`).join("");
+function setRating(n){mRating=n;$("m-rate").querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",+b.textContent===n))}
+$("m-rate").onclick=e=>{const b=e.target.closest("button");if(b)setRating(+b.textContent)};
+$("log").onclick=()=>{if(!current)return;$("m-title").textContent=titleOf(current);$("m-min").value=current.time;setRating(4);$("m-notes").value="";$("m-file").value="";mFile=null;$("m-prev").hidden=true;$("m-status").textContent="";$("m-save").disabled=false;$("modal").hidden=false;$("m-file").focus()};
+function closeModal(){$("modal").hidden=true;$("log").focus()}
+$("m-cancel").onclick=closeModal;$("modal").onclick=e=>{if(e.target===$("modal"))closeModal()};
+document.addEventListener("keydown",e=>{if(e.key==="Escape"){if(!$("celebrate").hidden)closeCelebrate();else if(!$("modal").hidden)closeModal()}});
+$("cel-ok").onclick=closeCelebrate;$("celebrate").onclick=e=>{if(e.target===$("celebrate"))closeCelebrate()};
+$("m-file").onchange=e=>{mFile=e.target.files[0]||null;const p=$("m-prev");if(mFile){p.src=URL.createObjectURL(mFile);p.hidden=false}else p.hidden=true};
+$("m-save").onclick=async()=>{
+  const st=$("m-status");st.className="status";$("m-save").disabled=true;st.textContent="Saving…";
+  const c={id:uid(),promptId:current.id,title:titleOf(current),subject:current.subject,cat:SUB[current.subject].cat,theme:current.theme,difficulty:current.difficulty,
+    focus:current.focus,skill:current.skill,rule:current.rule,format:current.format,completedAt:Date.now(),minutes:Math.max(1,Math.round(+$("m-min").value||current.time)),
+    rating:mRating,notes:$("m-notes").value.trim().slice(0,1000),review:null,reviewPending:false};
+  let aiBlob=null;
+  try{
+    if(mFile){
+      const big=await scaleImage(mFile,1600,.85);aiBlob=(await scaleImage(mFile,1280)).blob;
+      let stored=false;
+      if(store.mode==="cloud"&&store.assets){try{const up=await store.assets.upload(big.blob);c.assetId=up.id;stored=true}catch(e){}}
+      if(!stored){const sm=await scaleImage(mFile,480,.72);c.thumb=sm.dataURL}
+    }
+    const wantAI=$("m-ai").checked&&aiOK&&aiBlob;c.reviewPending=!!wantAI;
+    await addCompletion(c);closeModal();celebrate(c);if(wantAI)toast("Getting Claude's feedback on your render…");
+    if(wantAI)reviewRender(c.id,aiBlob,c);
+  }catch(e){st.className="status err";st.textContent=e?.message||"Couldn't save. Try again.";$("m-save").disabled=false}
+};
+
+/* ================= STANDALONE + BACKUP ================= */
+const STANDALONE=!!window.BLENDDECK_STANDALONE;
+if(STANDALONE){
+  /* installed app: no account features */
+  ["tab-assessment"].forEach(id=>$(id).hidden=true);$("m-ai").closest("label").hidden=true;
+  if("serviceWorker" in navigator&&location.protocol.startsWith("http"))navigator.serviceWorker.register("sw.js").catch(()=>{});
+  try{navigator.storage?.persist?.()}catch(e){}
+  const n=document.querySelector("#v-progress .skills+.note");if(n)n.textContent="Each bar starts at your latest assessment (the white tick) and grows with every logged challenge in that skill. Assessments run in the claude.ai version; import a backup here to bring your baseline over.";
+  const m=document.querySelector("#v-progress .m-only");if(m)m.textContent="Log finished challenges on your PC, then use Backup to bring them over.";
+}
+$("bk-where").textContent=STANDALONE?"installed app · this device":"claude.ai version";
+async function toDataURL(src,max=480){try{const b=await (await fetch(src)).blob();return(await scaleImage(b,max,.72)).dataURL}catch(e){return null}}
+$("bk-export").onclick=async()=>{
+  const st=$("bk-status");st.className="status";st.textContent="Preparing backup…";$("bk-export").disabled=true;
+  try{
+    const comps=[];for(const c of store.completions){const x={...c};delete x.reviewPending;
+      if(x.assetId){x.thumb=await toDataURL(imgSrc(c));delete x.assetId}comps.push(x)}
+    const json=JSON.stringify({app:"BlendDeck",version:1,exportedAt:Date.now(),completions:comps,assessments:store.profile.assessments,pins:[...gPins]});
+    const name=`blenddeck-backup-${new Date().toISOString().slice(0,10)}.json`;
+    if(STANDALONE){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([json],{type:"application/json"}));a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
+    else{const dl=await window.claude.use("downloads");if(!dl)throw{message:"Saving files isn't available in this view."};await dl.save({filename:name,data:json})}
+    st.textContent=`Backup ready: ${comps.length} challenge${comps.length===1?"":"s"}, ${store.profile.assessments.length} assessment${store.profile.assessments.length===1?"":"s"}.`;
+  }catch(e){st.className="status err";st.textContent=e?.code==="declined"?"Export cancelled.":(e?.message||"Couldn't export. Try again.")}
+  finally{$("bk-export").disabled=false}
+};
+$("bk-file").onchange=async e=>{
+  const f=e.target.files[0];e.target.value="";if(!f)return;const st=$("bk-status");st.className="status";st.textContent="Importing…";
+  try{
+    const d=JSON.parse(await f.text());if(d?.app!=="BlendDeck"||!Array.isArray(d.completions))throw{message:"That file isn't a BlendDeck backup."};
+    const have=new Set(store.completions.map(c=>c.id));const add=d.completions.filter(c=>c&&c.id&&!have.has(c.id)&&SUB[c.subject]);
+    for(const c of add){const x={...c,reviewPending:false};
+      if(store.mode==="cloud")await store.col.doc(x.id).set(x);else store.completions.push(x)}
+    if(store.mode!=="cloud"){store.completions.sort((a,b)=>b.completedAt-a.completedAt);if(!lsSet("md-completions",store.completions))throw{message:"This device's storage is full, so some renders couldn't be imported."}}
+    const haveA=new Set(store.profile.assessments.map(a=>a.date));const addA=(d.assessments||[]).filter(a=>a&&a.date&&a.skills&&!haveA.has(a.date));
+    if(addA.length)await saveProfile({assessments:[...store.profile.assessments,...addA].sort((a,b)=>a.date-b.date).slice(-20)});
+    (d.pins||[]).forEach(p=>gPins.add(p));lsSet("md-pins",[...gPins]);
+    renderAll();st.textContent=`Imported ${add.length} new challenge${add.length===1?"":"s"} and ${addA.length} assessment${addA.length===1?"":"s"}.`;
+  }catch(err){st.className="status err";st.textContent=err?.message||"Couldn't read that file."}
+};
+
+/* ================= AMBIENT BACKGROUND ================= */
+(function(){
+  const cv=$("bg"),ctx=cv.getContext("2d");let W=0,H=0,objs=[],boost=0,mx=0,my=0,tmx=0,tmy=0,last=0,col={};
+  function readCols(){const cs=getComputedStyle(document.documentElement);col.a=cs.getPropertyValue("--accent").trim()||"#FF6A13";col.m=cs.getPropertyValue("--muted").trim()||"#888";col.l=cs.getPropertyValue("--line").trim()||"#333"}
+  function resize(){const dpr=Math.min(devicePixelRatio||1,1.5);W=innerWidth;H=innerHeight;cv.width=W*dpr;cv.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0)}
+  /* wireframe meshes: the same primitives the Blockout view uses */
+  const mk=(v,e)=>({v,e});
+  function cube(){const v=[];for(const x of[-1,1])for(const y of[-1,1])for(const z of[-1,1])v.push([x*.8,y*.8,z*.8]);const e=[];
+    for(let i=0;i<8;i++)for(let j=i+1;j<8;j++){let d=0;for(let k=0;k<3;k++)if(v[i][k]!==v[j][k])d++;if(d===1)e.push([i,j])}return mk(v,e)}
+  function ico(){const p=(1+Math.sqrt(5))/2,s=.62;const v=[[-1,p,0],[1,p,0],[-1,-p,0],[1,-p,0],[0,-1,p],[0,1,p],[0,-1,-p],[0,1,-p],[p,0,-1],[p,0,1],[-p,0,-1],[-p,0,1]].map(a=>a.map(c=>c*s));
+    const e=[];for(let i=0;i<12;i++)for(let j=i+1;j<12;j++){const d=Math.hypot(v[i][0]-v[j][0],v[i][1]-v[j][1],v[i][2]-v[j][2]);if(Math.abs(d-2*s)<.01)e.push([i,j])}return mk(v,e)}
+  function torus(){const v=[],e=[],n=16,m=7,R=.95,r=.36;for(let i=0;i<n;i++)for(let j=0;j<m;j++){const a=i/n*2*PI,b=j/m*2*PI;v.push([(R+r*Math.cos(b))*Math.cos(a),r*Math.sin(b),(R+r*Math.cos(b))*Math.sin(a)]);
+    e.push([i*m+j,((i+1)%n)*m+j]);e.push([i*m+j,i*m+(j+1)%m])}return mk(v,e)}
+  function cyl(){const v=[],e=[],n=12;for(let i=0;i<n;i++){const a=i/n*2*PI;v.push([Math.cos(a)*.75,-1,Math.sin(a)*.75],[Math.cos(a)*.75,1,Math.sin(a)*.75])}
+    for(let i=0;i<n;i++){const j=(i+1)%n;e.push([2*i,2*j],[2*i+1,2*j+1],[2*i,2*i+1])}return mk(v,e)}
+  function cone(){const v=[[0,-1.1,0]],e=[],n=12;for(let i=0;i<n;i++){const a=i/n*2*PI;v.push([Math.cos(a)*.85,.9,Math.sin(a)*.85])}
+    for(let i=0;i<n;i++){e.push([0,i+1],[i+1,(i+1)%n+1])}return mk(v,e)}
+  const MAKERS=[cube,ico,torus,cyl,cone];
+  const rnd=(a,b)=>a+Math.random()*(b-a);
+  function spawn(){const n=W<700?4:7;objs=[];for(let i=0;i<n;i++){
+    const side=i%2?1:-1;objs.push({m:MAKERS[i%MAKERS.length](),x:side*rnd(3,8),y:rnd(-4.5,1),z:rnd(8,18),s:rnd(.7,1.5),
+      r:[rnd(0,6),rnd(0,6),rnd(0,6)],w:[rnd(-1,1)*.00025,rnd(.15,.45)*.001*(Math.random()<.5?-1:1),rnd(-1,1)*.0002],ph:rnd(0,6),acc:i%3===0})}}
+  function rot(p,a){let [x,y,z]=p;let c=Math.cos(a[0]),s=Math.sin(a[0]);[y,z]=[y*c-z*s,y*s+z*c];c=Math.cos(a[1]);s=Math.sin(a[1]);[x,z]=[x*c+z*s,-x*s+z*c];c=Math.cos(a[2]);s=Math.sin(a[2]);[x,y]=[x*c-y*s,x*s+y*c];return[x,y,z]}
+  function proj(x,y,z){const f=Math.min(W,H)*.85;return[W/2+(x-mx)*f/z,H*.42+(y-my)*f/z]}
+  function draw(now,dt){
+    ctx.clearRect(0,0,W,H);boost*=Math.pow(.94,dt/16);const sp=1+boost*9;
+    /* floor grid scrolling toward you */
+    const off=((now*.0004*(1+boost*4))%2);ctx.lineWidth=1;ctx.strokeStyle=col.l;
+    for(let z=2-off;z<36;z+=2){if(z<1.2)continue;const a=Math.max(0,1-z/36);ctx.globalAlpha=a*.9;const [x0,y]=proj(-22,3.2,z),[x1]=proj(22,3.2,z);ctx.beginPath();ctx.moveTo(x0,y);ctx.lineTo(x1,y);ctx.stroke()}
+    for(let x=-22;x<=22;x+=2){const [a0,b0]=proj(x,3.2,1.6),[a1,b1]=proj(x,3.2,36);const g=ctx.createLinearGradient(a0,b0,a1,b1);g.addColorStop(0,col.l);g.addColorStop(1,"transparent");
+      ctx.globalAlpha=.9;ctx.strokeStyle=g;ctx.beginPath();ctx.moveTo(a0,b0);ctx.lineTo(a1,b1);ctx.stroke()}
+    /* floating primitives */
+    objs.forEach(o=>{for(let k=0;k<3;k++)o.r[k]+=o.w[k]*dt*sp;
+      const bob=Math.sin(now*.0004+o.ph)*.25;
+      const pts=o.m.v.map(p=>{const q=rot(p,o.r);return proj(o.x+q[0]*o.s,o.y+bob+q[1]*o.s,o.z+q[2]*o.s)});
+      const fade=Math.max(0,Math.min(1,(22-o.z)/12));
+      ctx.globalAlpha=(o.acc?.42:.26)*fade+(o.acc?boost*.35:0);ctx.strokeStyle=o.acc?col.a:col.m;ctx.lineWidth=o.acc?1.2:1;
+      ctx.beginPath();o.m.e.forEach(([i,j])=>{ctx.moveTo(pts[i][0],pts[i][1]);ctx.lineTo(pts[j][0],pts[j][1])});ctx.stroke();
+      if(o.acc){ctx.fillStyle=col.a;pts.forEach(p=>{ctx.fillRect(p[0]-1,p[1]-1,2,2)})}
+    });
+    ctx.globalAlpha=1;
+  }
+  function frame(now){
+    if(!document.hidden&&!REDUCE.matches){const dt=Math.min(64,now-(last||now));
+      if(now-last>=30){mx+=(tmx-mx)*.04;my+=(tmy-my)*.04;draw(now,dt);last=now}}
+    requestAnimationFrame(frame);
+  }
+  function still(){draw(performance.now(),0)}
+  readCols();resize();spawn();still();
+  addEventListener("resize",()=>{resize();spawn();still()});
+  addEventListener("pointermove",e=>{tmx=(e.clientX/W-.5)*1.4;tmy=(e.clientY/H-.5)*.8},{passive:true});
+  const re=()=>{readCols();still()};
+  matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change",re);
+  new MutationObserver(re).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
+  REDUCE.addEventListener?.("change",still);
+  window.bgPulse=()=>{boost=1};
+  requestAnimationFrame(frame);
+})();
+
+/* ================= BOOT ================= */
+showView();
+if(current&&SUB[current.subject]&&THEMES[current.theme])renderChallenge();else roll();
+renderAll();
+initStore();initAI();
+</script>
+
+</body>
+</html>

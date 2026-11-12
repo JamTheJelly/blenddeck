@@ -1,0 +1,18 @@
+{
+  "name": "BlendDeck",
+  "short_name": "BlendDeck",
+  "description": "Blender practice challenges, reference drawings, progress stats and guides.",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0C0D0F",
+  "theme_color": "#0C0D0F",
+  "categories": ["education", "productivity", "graphics"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
