@@ -9,14 +9,14 @@ BlendDeck runs as an installable web app (PWA) on Windows and Android. Once inst
 | `index.html` | The app |
 | `manifest.webmanifest` | App name, icons and colors for installing |
 | `sw.js` | Offline cache |
-| `icons/` | App icons |
+| `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | App icons |
 
 ## 1. Put it online (free, one time)
 
 Installing needs the files served over https. GitHub Pages is free:
 
 1. Sign in at github.com and create a new **public** repository, for example `blenddeck`.
-2. Click **Add file › Upload files** and drag in everything from this folder, including the `icons` folder. Commit.
+2. Click **Add file › Upload files** and drag in all 8 files from this folder. Commit. There are no subfolders, so everything uploads in one go.
 3. Go to **Settings › Pages**. Under *Build and deployment*, choose **Deploy from a branch**, branch **main**, folder **/ (root)**, then **Save**.
 4. After a minute your app is live at `https://<your-username>.github.io/blenddeck/`.
 
